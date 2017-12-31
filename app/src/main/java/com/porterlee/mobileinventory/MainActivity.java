@@ -1,13 +1,16 @@
 package com.porterlee.mobileinventory;
 
+import android.content.ContentValues;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -19,26 +22,29 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Random;
 
 
 public class MainActivity extends AppCompatActivity {
-    protected static final String ITEM_ID = "id";
-    protected static final String ITEM_READY = "ready";
-    protected static final String ITEM_BARCODE = "barcode";
-    protected static final String ITEM_DESCRIPTION = "description";
+    private static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/PLCRFID/mobileinventory");
     private RecyclerView itemRecyclerView;
     private RecyclerView.Adapter itemRecyclerAdapter;
-    private ArrayList<HashMap<String, Object>> items = new ArrayList<>();
+    private ArrayList<Pair<ContentValues, Boolean>> items = new ArrayList<>();
     //private ArrayList<HashMap<String, Object>> photos = new ArrayList<>();
-    private SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(":memory:", null);
+    private SQLiteDatabase db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + ScannedItemsDatabase.FILE_NAME, null);
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + ScannedItemsDatabase.BarcodesTable.TABLE_CREATION);
+
+
 
         itemRecyclerView = findViewById(R.id.item_list_view);
         itemRecyclerView.setHasFixedSize(true);
@@ -46,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
         itemRecyclerAdapter = new RecyclerView.Adapter() {
             @Override
             public long getItemId(int i) {
-                return (Long) items.get(i).get(ITEM_ID);
+                return (Long) items.get(i).first.get(ScannedItemsDatabase.BarcodesTable.Keys.ID);
             }
 
             @Override
@@ -96,23 +102,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void addBarcodeItem(int index, @NonNull String barcode, @Nullable String description) {
+        ContentValues values = new ContentValues();
+        values.put(ScannedItemsDatabase.BarcodesTable.Keys.BARCODE, barcode);
+        values.put(ScannedItemsDatabase.BarcodesTable.Keys.DESCRIPTION, description);
 
-        HashMap<String, Object> hash = new HashMap<>();
-        hash.put(ITEM_READY, true);
-        hash.put(ITEM_BARCODE, barcode);
-        hash.put(ITEM_DESCRIPTION, description);
-        items.add(index, hash);
+        long id = db.insert(ScannedItemsDatabase.BarcodesTable.NAME, null, values);
+        if (id != -1) values.put(ScannedItemsDatabase.BarcodesTable.Keys.ID, id); else return;
+        items.add(index, new Pair<>(values, true));
         itemRecyclerAdapter.notifyItemInserted(0);
         itemRecyclerView.scrollToPosition(0);
     }
 
-    public void takePhoto(int index) {
+    /*public void takePhoto(int index) {
         HashMap<String, Object> itemForPhoto = items.get(index);
-    }
+    }*/
 
     public void randomScan(View view) {
-        Random r = new Random();
-        addBarcodeItem(0, "tnyc000" + r.nextInt(0xffff), null);
+        addBarcodeItem(0, "tnyc000" + new Random().nextInt(0xffff), null);
     }
 
     class SimpleViewHolder extends RecyclerView.ViewHolder {
@@ -129,19 +135,19 @@ public class MainActivity extends AppCompatActivity {
             expandedMenu = itemView.findViewById(R.id.menu_button);
         }
 
-        void bindViews(HashMap<String, Object> item) {
-            Object ready = item.get(ITEM_READY);
-            Object barcode = item.get(ITEM_BARCODE);
-            Object description = item.get(ITEM_DESCRIPTION);
-            //System.out.println((String) ready);
-            if (ready != null && (Boolean) ready) {
+        void bindViews(Pair<ContentValues, Boolean> item) {
+            ContentValues values = item.first;
+            Boolean ready = item.second;
+            String barcode = values.getAsString(ScannedItemsDatabase.BarcodesTable.Keys.BARCODE);
+            String description = values.getAsString(ScannedItemsDatabase.BarcodesTable.Keys.DESCRIPTION);
+            if (ready != null && ready) {
                 progressLoading.setVisibility(View.GONE);
                 if (barcode != null) {
-                    itemBarcode.setText((String) barcode);
+                    itemBarcode.setText(barcode);
                     itemBarcode.setVisibility(View.VISIBLE);
                 } else itemBarcode.setVisibility(View.GONE);
                 if (description != null) {
-                    itemDescription.setText((String) description);
+                    itemDescription.setText(description);
                     itemDescription.setVisibility(View.VISIBLE);
                 } else itemDescription.setVisibility(View.GONE);
                 expandedMenu.setVisibility(View.VISIBLE);
