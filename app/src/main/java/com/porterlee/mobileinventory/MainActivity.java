@@ -1,6 +1,7 @@
 package com.porterlee.mobileinventory;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Environment;
@@ -26,7 +27,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Random;
 
-
 public class MainActivity extends AppCompatActivity {
     private static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/PLCRFID/mobileinventory");
     private RecyclerView itemRecyclerView;
@@ -41,10 +41,26 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + ScannedItemsDatabase.FILE_NAME, null);
-
         db.execSQL("CREATE TABLE IF NOT EXISTS " + ScannedItemsDatabase.BarcodesTable.TABLE_CREATION);
 
+        Cursor cursor = db.rawQuery("SELECT * FROM " + ScannedItemsDatabase.BarcodesTable.NAME,null);
 
+        cursor.moveToFirst();
+
+        final int idIndex = cursor.getColumnIndex(ScannedItemsDatabase.BarcodesTable.Keys.ID);
+        final int barcodeIndex = cursor.getColumnIndex(ScannedItemsDatabase.BarcodesTable.Keys.BARCODE);
+        final int descriptionIndex = cursor.getColumnIndex(ScannedItemsDatabase.BarcodesTable.Keys.DESCRIPTION);
+
+        while (!cursor.isAfterLast()) {
+            ContentValues values = new ContentValues();
+            values.put(ScannedItemsDatabase.BarcodesTable.Keys.ID, cursor.getLong(idIndex));
+            values.put(ScannedItemsDatabase.BarcodesTable.Keys.BARCODE, cursor.getString(barcodeIndex));
+            values.put(ScannedItemsDatabase.BarcodesTable.Keys.DESCRIPTION, cursor.getString(descriptionIndex));
+            items.add(new Pair<>(values, true));
+            cursor.moveToNext();
+        }
+
+        cursor.close();
 
         itemRecyclerView = findViewById(R.id.item_list_view);
         itemRecyclerView.setHasFixedSize(true);
@@ -75,9 +91,7 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public boolean onMenuItemClick(MenuItem menuItem) {
                                 int index = holder.getAdapterPosition();
-                                itemRecyclerAdapter.notifyDataSetChanged();
-                                items.remove(index);
-                                itemRecyclerAdapter.notifyItemRemoved(index);
+                                removeBarcodeItem(index);
                                 return true;
                             }
                         });
@@ -101,16 +115,30 @@ public class MainActivity extends AppCompatActivity {
         itemRecyclerView.setItemAnimator(new SimpleItemAnimator());
     }
 
-    public void addBarcodeItem(int index, @NonNull String barcode, @Nullable String description) {
+    public boolean removeBarcodeItem(int index) {
+        if (db.delete(ScannedItemsDatabase.BarcodesTable.NAME, ScannedItemsDatabase.BarcodesTable.Keys.ID + " = " + items.get(index).first.getAsLong(ScannedItemsDatabase.BarcodesTable.Keys.ID), null) > 0) {
+            itemRecyclerAdapter.notifyDataSetChanged();
+            items.remove(index);
+            itemRecyclerAdapter.notifyItemRemoved(index);
+        } else return false;
+        return true;
+    }
+
+    public boolean addBarcodeItem(int index, @NonNull String barcode, @Nullable String description) {
         ContentValues values = new ContentValues();
         values.put(ScannedItemsDatabase.BarcodesTable.Keys.BARCODE, barcode);
         values.put(ScannedItemsDatabase.BarcodesTable.Keys.DESCRIPTION, description);
 
-        long id = db.insert(ScannedItemsDatabase.BarcodesTable.NAME, null, values);
-        if (id != -1) values.put(ScannedItemsDatabase.BarcodesTable.Keys.ID, id); else return;
+        if (db.insert(ScannedItemsDatabase.BarcodesTable.NAME, null, values) == -1) return false;
+        Cursor cursor = db.rawQuery("SELECT * FROM " + ScannedItemsDatabase.BarcodesTable.NAME + " ORDER BY " + ScannedItemsDatabase.BarcodesTable.Keys.ID + " DESC LIMIT 1;", null);
+        cursor.moveToFirst();
+        values.put(ScannedItemsDatabase.BarcodesTable.Keys.ID, cursor.getInt(cursor.getColumnIndex(ScannedItemsDatabase.BarcodesTable.Keys.ID)));
+        cursor.close();
+
         items.add(index, new Pair<>(values, true));
         itemRecyclerAdapter.notifyItemInserted(0);
         itemRecyclerView.scrollToPosition(0);
+        return true;
     }
 
     /*public void takePhoto(int index) {
