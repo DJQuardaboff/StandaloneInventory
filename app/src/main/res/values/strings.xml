@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Mobile Inventory</string>
     <string name="random_scan_button_text">Random Scan</string>
-    <string name="menu_description">Manage photos</string>
+    <string name="menu_description">Item Menu</string>
+    <string name="toolbar_menu_title">Delete Sweep</string>
 </resources>
