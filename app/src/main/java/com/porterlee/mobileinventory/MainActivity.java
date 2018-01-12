@@ -13,6 +13,7 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.util.Pair;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -79,9 +80,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
                 View itemLayoutView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_layout, parent, false);
-                final SimpleViewHolder holder = new SimpleViewHolder(itemLayoutView);
-                holder.setIsRecyclable(false);
-                itemLayoutView.findViewById(R.id.menu_button).setOnClickListener(new View.OnClickListener() {
+                final SimpleViewHolder simpleHolder = new SimpleViewHolder(itemLayoutView);
+                simpleHolder.expandedMenu.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
                         PopupMenu popup = new PopupMenu(MainActivity.this, view);
@@ -90,19 +90,18 @@ public class MainActivity extends AppCompatActivity {
                         popup.getMenu().getItem(2).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                             @Override
                             public boolean onMenuItemClick(MenuItem menuItem) {
-                                int index = holder.getAdapterPosition();
-                                removeBarcodeItem(index);
+                                removeBarcodeItem(simpleHolder.getAdapterPosition());
                                 return true;
                             }
                         });
                         popup.show();
                     }
                 });
-                return holder;
+                return simpleHolder;
             }
 
             @Override
-            public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+            public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
                 ((SimpleViewHolder) holder).bindViews(items.get(position));
             }
 
@@ -112,14 +111,145 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         itemRecyclerView.setAdapter(itemRecyclerAdapter);
-        itemRecyclerView.setItemAnimator(new SimpleItemAnimator());
+        //itemRecyclerView.setItemAnimator(new SimpleItemAnimator());
+        itemRecyclerView.setItemAnimator(new RecyclerView.ItemAnimator() {
+            @Override
+            public boolean animateDisappearance(@NonNull RecyclerView.ViewHolder viewHolder, @NonNull ItemHolderInfo preLayoutInfo, @Nullable ItemHolderInfo postLayoutInfo) {
+                Animation animation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.slide_out_left);
+                final RecyclerView.ViewHolder finalHolder = viewHolder;
+                animation.setAnimationListener(new Animation.AnimationListener() {
+                    @Override
+                    public void onAnimationStart(Animation animation) { }
+
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
+                        dispatchAnimationFinished(finalHolder);
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) { }
+                });
+                viewHolder.itemView.startAnimation(animation);
+                return false;
+            }
+
+            @Override
+            public boolean animateAppearance(@NonNull RecyclerView.ViewHolder viewHolder, @Nullable ItemHolderInfo preLayoutInfo, @NonNull ItemHolderInfo postLayoutInfo) {
+                final RecyclerView.ViewHolder finalHolder = viewHolder;
+                Animation animation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.slide_in_right);
+                animation.setAnimationListener(new Animation.AnimationListener() {
+                    @Override
+                    public void onAnimationStart(Animation animation) { }
+
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
+                        dispatchAnimationFinished(finalHolder);
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) { }
+                });
+                viewHolder.itemView.startAnimation(animation);
+                return false;
+            }
+
+            @Override
+            public boolean animatePersistence(@NonNull RecyclerView.ViewHolder viewHolder, @NonNull ItemHolderInfo preLayoutInfo, @NonNull ItemHolderInfo postLayoutInfo) {
+                System.out.println("animatePersistence: " + viewHolder.getAdapterPosition());
+                dispatchAnimationFinished(viewHolder);
+                return false;
+            }
+
+            @Override
+            public boolean animateChange(@NonNull RecyclerView.ViewHolder oldHolder, @NonNull RecyclerView.ViewHolder newHolder, @NonNull ItemHolderInfo preLayoutInfo, @NonNull ItemHolderInfo postLayoutInfo) {
+                /*final SimpleViewHolder simpleHolder = (SimpleViewHolder) newHolder;
+                Animation animation = AnimationUtils.loadAnimation(MainActivity.this, android.R.anim.fade_in);
+                if (preLayoutInfo.top > postLayoutInfo.top)
+                    animation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.slide_up);
+                else if (preLayoutInfo.top < postLayoutInfo.top)
+                    animation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.slide_down);
+
+                animation.setAnimationListener(new Animation.AnimationListener() {
+                    @Override
+                    public void onAnimationStart(Animation animation) { }
+
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
+                        dispatchAnimationFinished(simpleHolder);
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) { }
+                });
+                simpleHolder.itemView.startAnimation(animation);*/
+                dispatchAnimationFinished(oldHolder);
+                if (oldHolder != newHolder) {
+                    dispatchAnimationFinished(newHolder);
+                }
+                return false;
+            }
+
+            @Override
+            public void runPendingAnimations() {
+                System.out.println("runPendingAnimations");
+            }
+
+            @Override
+            public void endAnimation(RecyclerView.ViewHolder item) {
+                System.out.println("endAnimation");
+                item.itemView.getAnimation().cancel();
+            }
+
+            @Override
+            public void endAnimations() {
+                System.out.println("endAnimations");
+            }
+
+            @Override
+            public boolean isRunning() {
+                System.out.println("isRunning");
+                return false;
+            }
+        });
+        itemRecyclerView.addOnChildAttachStateChangeListener(new RecyclerView.OnChildAttachStateChangeListener() {
+            @Override
+            public void onChildViewAttachedToWindow(View view) {
+                System.out.println("1 " + view);
+            }
+
+            @Override
+            public void onChildViewDetachedFromWindow(View view) {
+                System.out.println("2 " + view);
+
+            }
+        });
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater=getMenuInflater();
+        inflater.inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_delete_sweep:
+
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     public boolean removeBarcodeItem(int index) {
         if (db.delete(ScannedItemsDatabase.BarcodesTable.NAME, ScannedItemsDatabase.BarcodesTable.Keys.ID + " = " + items.get(index).first.getAsLong(ScannedItemsDatabase.BarcodesTable.Keys.ID), null) > 0) {
-            itemRecyclerAdapter.notifyDataSetChanged();
+            //itemRecyclerAdapter.notifyDataSetChanged();
             items.remove(index);
             itemRecyclerAdapter.notifyItemRemoved(index);
+            itemRecyclerAdapter.notifyItemRangeChanged(index, items.size() - index);
         } else return false;
         return true;
     }
@@ -136,8 +266,9 @@ public class MainActivity extends AppCompatActivity {
         cursor.close();
 
         items.add(index, new Pair<>(values, true));
-        itemRecyclerAdapter.notifyItemInserted(0);
-        itemRecyclerView.scrollToPosition(0);
+        itemRecyclerAdapter.notifyItemInserted(index);
+        itemRecyclerAdapter.notifyItemRangeChanged(index, items.size());
+        //itemRecyclerView.scrollToPosition(0);
         return true;
     }
 
@@ -187,32 +318,27 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+    /*
+    public void animateRemoveItem(int index) {
+        Animation animation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.slide_out_left);
+        final RecyclerView.ViewHolder finalHolder = holder;
+        animation.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) { }
 
-    class SimpleItemAnimator extends android.support.v7.widget.SimpleItemAnimator {
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                dispatchAddFinished(finalHolder);
+            }
 
-        @Override
-        public boolean animateRemove(RecyclerView.ViewHolder holder) {
-            Animation animation = AnimationUtils.loadAnimation(MainActivity.this, android.R.anim.slide_out_right);
-            final RecyclerView.ViewHolder finalHolder = holder;
-            animation.setAnimationListener(new Animation.AnimationListener() {
-                @Override
-                public void onAnimationStart(Animation animation) { }
+            @Override
+            public void onAnimationRepeat(Animation animation) { }
+        });
+        holder.itemView.startAnimation(animation);
+    }
 
-                @Override
-                public void onAnimationEnd(Animation animation) {
-                    dispatchAddFinished(finalHolder);
-                }
-
-                @Override
-                public void onAnimationRepeat(Animation animation) { }
-            });
-            holder.itemView.startAnimation(animation);
-            return false;
-        }
-
-        @Override
         public boolean animateAdd(RecyclerView.ViewHolder holder) {
-            Animation animation = AnimationUtils.loadAnimation(MainActivity.this, android.R.anim.slide_in_left);
+            Animation animation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.slide_in_right);
             final RecyclerView.ViewHolder finalHolder = holder;
             animation.setAnimationListener(new Animation.AnimationListener() {
                 @Override
@@ -232,6 +358,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean animateMove(RecyclerView.ViewHolder holder, int fromX, int fromY, int toX, int toY) {
+            System.out.print("fromX: " + fromX + "\tfromY: " + fromY + "\ttoX: " + toX + "\ttoY: " + toY);
             dispatchAddFinished(holder);
             return false;
         }
@@ -262,6 +389,6 @@ public class MainActivity extends AppCompatActivity {
         public boolean isRunning() {
             return false;
         }
-    }
+    }*/
 }
 
