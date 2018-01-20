@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView.Adapter itemRecyclerAdapter;
     private ArrayList<Pair<ContentValues, Boolean>> items = new ArrayList<>();
     //private ArrayList<HashMap<String, Object>> photos = new ArrayList<>();
+    private ArrayList<Animation> animations = new ArrayList<>();
     private SQLiteDatabase db;
 
     @Override
@@ -42,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + ScannedItemsDatabase.FILE_NAME, null);
+        //db.execSQL("DROP TABLE barcodes");
         db.execSQL("CREATE TABLE IF NOT EXISTS " + ScannedItemsDatabase.BarcodesTable.TABLE_CREATION);
 
         Cursor cursor = db.rawQuery("SELECT * FROM " + ScannedItemsDatabase.BarcodesTable.NAME,null);
@@ -81,7 +83,12 @@ public class MainActivity extends AppCompatActivity {
             public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
                 View itemLayoutView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_layout, parent, false);
                 final SimpleViewHolder simpleHolder = new SimpleViewHolder(itemLayoutView);
-                simpleHolder.expandedMenu.setOnClickListener(new View.OnClickListener() {
+                return simpleHolder;
+            }
+
+            @Override
+            public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
+                ((SimpleViewHolder) holder).expandedMenu.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
                         PopupMenu popup = new PopupMenu(MainActivity.this, view);
@@ -90,18 +97,13 @@ public class MainActivity extends AppCompatActivity {
                         popup.getMenu().getItem(2).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                             @Override
                             public boolean onMenuItemClick(MenuItem menuItem) {
-                                removeBarcodeItem(simpleHolder.getAdapterPosition());
+                                removeBarcodeItem(holder.getAdapterPosition());
                                 return true;
                             }
                         });
                         popup.show();
                     }
                 });
-                return simpleHolder;
-            }
-
-            @Override
-            public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
                 ((SimpleViewHolder) holder).bindViews(items.get(position));
             }
 
@@ -115,8 +117,8 @@ public class MainActivity extends AppCompatActivity {
         itemRecyclerView.setItemAnimator(new RecyclerView.ItemAnimator() {
             @Override
             public boolean animateDisappearance(@NonNull RecyclerView.ViewHolder viewHolder, @NonNull ItemHolderInfo preLayoutInfo, @Nullable ItemHolderInfo postLayoutInfo) {
-                Animation animation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.slide_out_left);
                 final RecyclerView.ViewHolder finalHolder = viewHolder;
+                Animation animation = AnimationUtils.loadAnimation(MainActivity.this, R.anim.slide_out_left);
                 animation.setAnimationListener(new Animation.AnimationListener() {
                     @Override
                     public void onAnimationStart(Animation animation) { }
@@ -124,12 +126,15 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onAnimationEnd(Animation animation) {
                         dispatchAnimationFinished(finalHolder);
+                        animations.remove(animation);
                     }
 
                     @Override
                     public void onAnimationRepeat(Animation animation) { }
                 });
                 viewHolder.itemView.startAnimation(animation);
+                animations.add(animation);
+                //dispatchAnimationFinished(finalHolder);
                 return false;
             }
 
@@ -144,12 +149,15 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onAnimationEnd(Animation animation) {
                         dispatchAnimationFinished(finalHolder);
+                        animations.remove(animation);
                     }
 
                     @Override
                     public void onAnimationRepeat(Animation animation) { }
                 });
                 viewHolder.itemView.startAnimation(animation);
+                animations.add(animation);
+                //dispatchAnimationFinished(finalHolder);
                 return false;
             }
 
@@ -186,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
                 if (oldHolder != newHolder) {
                     dispatchAnimationFinished(newHolder);
                 }
-                return false;
+                return true;
             }
 
             @Override
@@ -202,6 +210,9 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void endAnimations() {
+                for (int i = 0; i < animations.size(); i++){
+                    animations.get(0).cancel();
+                }
                 System.out.println("endAnimations");
             }
 
@@ -214,20 +225,20 @@ public class MainActivity extends AppCompatActivity {
         itemRecyclerView.addOnChildAttachStateChangeListener(new RecyclerView.OnChildAttachStateChangeListener() {
             @Override
             public void onChildViewAttachedToWindow(View view) {
-                System.out.println("1 " + view);
+                System.out.println("attaching " + view);
             }
 
             @Override
             public void onChildViewDetachedFromWindow(View view) {
-                System.out.println("2 " + view);
-
+                view.getAnimation().cancel();
+                System.out.println("detaching");
             }
         });
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater=getMenuInflater();
+        MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_main, menu);
         return true;
     }
@@ -268,7 +279,7 @@ public class MainActivity extends AppCompatActivity {
         items.add(index, new Pair<>(values, true));
         itemRecyclerAdapter.notifyItemInserted(index);
         itemRecyclerAdapter.notifyItemRangeChanged(index, items.size());
-        //itemRecyclerView.scrollToPosition(0);
+        itemRecyclerView.scrollToPosition(0);
         return true;
     }
 
