@@ -2,8 +2,8 @@
     <string name="app_name">Mobile Inventory</string>
     <string name="random_scan_button_text">Random Scan</string>
     <string name="menu_description">Item Menu</string>
-    <string name="toolbar_menu_title">Delete Sweep</string>
-    <string name="delete_entry">Delete entry</string>
+    <string name="toolbar_menu_title">Remove all</string>
+    <string name="remove_item">Remove item</string>
     <string name="view_pictures">View pictures</string>
     <string name="take_picture">Take a picture</string>
 </resources>

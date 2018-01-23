@@ -1,6 +1,6 @@
 package com.porterlee.mobileinventory;
 
-public class ScannedItemsDatabase {
+public class PreloadDatabase {
     public static final String FILE_NAME = "scanned_items.db";
 
     public class BarcodesTable {
