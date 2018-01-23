@@ -30,9 +30,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import device.scanner.DecodeResult;
-import device.scanner.ScannerService;
-
 import java.io.File;
 import java.util.Random;
 
@@ -42,7 +39,7 @@ public class InventoryActivity extends AppCompatActivity {
     private RecyclerView itemRecyclerView;
     private RecyclerView.Adapter itemRecyclerAdapter;
     private RecyclerView.ItemAnimator itemRecyclerAnimator;
-    private ScannerService scannerService;
+    //private ScannerService scannerService;
     private SQLiteDatabase db;
 
     @Override
@@ -51,11 +48,11 @@ public class InventoryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_inventory);
 
         db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + InventoryDatabase.FILE_NAME, null);
-        //db.execSQL("DROP TABLE barcodes");
+        //db.execSQL("DROP TABLE " + InventoryDatabase.BarcodesTable.NAME);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + InventoryDatabase.BarcodesTable.TABLE_CREATION);
 
         db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + InventoryDatabase.FILE_NAME, null);
-        //db.execSQL("DROP TABLE barcodes");
+        //db.execSQL("DROP TABLE " + InventoryDatabase.LocationsTable.NAME);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + InventoryDatabase.LocationsTable.TABLE_CREATION);
 
         Button randomScanButton = findViewById(R.id.random_scan_button);
@@ -170,8 +167,20 @@ public class InventoryActivity extends AppCompatActivity {
         }
     }
 
+    public void scanBarcode(String barcode) {
+        if (barcode.startsWith("V")) addLocation(barcode); else if (barcode.startsWith("e")) addBarcodeItem(barcode, null);
+    }
+
     public boolean addLocation(String barcode) {
         return true;
+    }
+
+    public long getLastLocationId() {
+        Cursor cursor = db.rawQuery("SELECT " + InventoryDatabase.LocationsTable.Keys.ID + " FROM " + InventoryDatabase.LocationsTable.NAME + " ORDER BY " + InventoryDatabase.LocationsTable.Keys.ID + " DESC LIMIT 1;", null);
+        cursor.moveToFirst();
+        long id = cursor.getLong(0);
+        cursor.close();
+        return id;
     }
 
     public boolean removeBarcodeItem(int index) {
@@ -185,7 +194,9 @@ public class InventoryActivity extends AppCompatActivity {
     public boolean addBarcodeItem(@NonNull String barcode, @Nullable String description) {
         ContentValues values = new ContentValues();
         values.put(InventoryDatabase.BarcodesTable.Keys.BARCODE, barcode);
+        values.put(InventoryDatabase.BarcodesTable.Keys.LOCATION_ID, getLastLocationId());
         values.put(InventoryDatabase.BarcodesTable.Keys.DESCRIPTION, description);
+        values.put(InventoryDatabase.BarcodesTable.Keys.DATE_TIME, description);
 
         if (db.insert(InventoryDatabase.BarcodesTable.NAME, null, values) == -1) return false;
 
