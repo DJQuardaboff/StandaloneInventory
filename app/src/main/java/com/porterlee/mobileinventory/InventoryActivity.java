@@ -1,12 +1,18 @@
 package com.porterlee.mobileinventory;
 
 import android.content.ContentValues;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.IBinder;
+import android.os.IInterface;
+import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
@@ -22,15 +28,21 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import device.scanner.DecodeResult;
+import device.scanner.ScannerService;
 
 import java.io.File;
 import java.util.Random;
 
 public class InventoryActivity extends AppCompatActivity {
     private static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download/invinfo.txt");
+    private String currentLocation;
     private RecyclerView itemRecyclerView;
     private RecyclerView.Adapter itemRecyclerAdapter;
     private RecyclerView.ItemAnimator itemRecyclerAnimator;
+    private ScannerService scannerService;
     private SQLiteDatabase db;
 
     @Override
@@ -41,6 +53,10 @@ public class InventoryActivity extends AppCompatActivity {
         db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + InventoryDatabase.FILE_NAME, null);
         //db.execSQL("DROP TABLE barcodes");
         db.execSQL("CREATE TABLE IF NOT EXISTS " + InventoryDatabase.BarcodesTable.TABLE_CREATION);
+
+        db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + InventoryDatabase.FILE_NAME, null);
+        //db.execSQL("DROP TABLE barcodes");
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + InventoryDatabase.LocationsTable.TABLE_CREATION);
 
         Button randomScanButton = findViewById(R.id.random_scan_button);
         randomScanButton.setOnClickListener(new View.OnClickListener() {
@@ -56,9 +72,10 @@ public class InventoryActivity extends AppCompatActivity {
         itemRecyclerAdapter = new RecyclerView.Adapter() {
             @Override
             public long getItemId(int i) {
-                Cursor cursor = db.rawQuery("SELECT " + InventoryDatabase.BarcodesTable.Keys.ID + " FROM " + InventoryDatabase.BarcodesTable.NAME + " ORDER BY " + InventoryDatabase.BarcodesTable.Keys.ID + " DESC LIMIT 1;", null);
+                Cursor cursor = db.rawQuery("SELECT " + InventoryDatabase.BarcodesTable.Keys.ID + " FROM " + InventoryDatabase.BarcodesTable.NAME + " LIMIT 1 OFFSET " + (itemRecyclerAdapter.getItemCount() - 1 - i), null);
                 cursor.moveToFirst();
                 long id = cursor.getLong(0);
+                System.out.println(id);
                 cursor.close();
                 return id;
             }
@@ -96,7 +113,7 @@ public class InventoryActivity extends AppCompatActivity {
                         popup.show();
                     }
                 });
-                Cursor cursor = db.rawQuery("SELECT * FROM " + InventoryDatabase.BarcodesTable.NAME + " LIMIT 1 OFFSET " + position,null);
+                Cursor cursor = db.rawQuery("SELECT * FROM " + InventoryDatabase.BarcodesTable.NAME + " LIMIT 1 OFFSET " + (itemRecyclerAdapter.getItemCount() - 1 - position),null);
                 ((SimpleViewHolder) holder).bindViews(cursor);
             }
 
@@ -112,12 +129,14 @@ public class InventoryActivity extends AppCompatActivity {
         itemRecyclerAnimator.setMoveDuration(100);
         itemRecyclerAnimator.setRemoveDuration(100);
         itemRecyclerView.setItemAnimator(itemRecyclerAnimator);
+        //scannerService = new ScannerService(this);
+        //DecodeResult decodeResult = new DecodeResult();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu_main, menu);
+        inflater.inflate(R.menu.inventory_menu, menu);
         return true;
     }
 
@@ -125,34 +144,53 @@ public class InventoryActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_remove_all:
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setCancelable(true);
+                builder.setTitle("Remove All");
+                builder.setMessage("Are you sure you want to remove all items?");
+                builder.setNegativeButton("no", null);
+                builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        for (int i = itemRecyclerAdapter.getItemCount() - 1; i >= 0; i--) {
+                            if (!removeBarcodeItem(i)) Toast.makeText(InventoryActivity.this, "Error removing item", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+                builder.create().show();
+                return true;
+            case R.id.action_save_to_file:
+                return true;
+            case R.id.action_preload:
+                startActivity(new Intent(this, PreloadActivity.class));
+                finish();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    public boolean setLocation(String barcode) {
+    public boolean addLocation(String barcode) {
         return true;
     }
 
     public boolean removeBarcodeItem(int index) {
-        if (db.delete(InventoryDatabase.BarcodesTable.NAME, InventoryDatabase.BarcodesTable.Keys.ID + " in ( SELECT " + InventoryDatabase.BarcodesTable.Keys.ID + " FROM " + InventoryDatabase.BarcodesTable.NAME + " LIMIT 1 OFFSET " + index + ")", null) > 0) {
-            //itemRecyclerAdapter.notifyDataSetChanged();
+        if (db.delete(InventoryDatabase.BarcodesTable.NAME, InventoryDatabase.BarcodesTable.Keys.ID + " in ( SELECT " + InventoryDatabase.BarcodesTable.Keys.ID + " FROM " + InventoryDatabase.BarcodesTable.NAME + " LIMIT 1 OFFSET " + (itemRecyclerAdapter.getItemCount() - 1 - index) + ")", null) > 0) {
             itemRecyclerAdapter.notifyItemRemoved(index);
             itemRecyclerAdapter.notifyItemRangeChanged(index, itemRecyclerAdapter.getItemCount() - index);
         } else return false;
         return true;
     }
 
-    public boolean addBarcodeItem(int index, @NonNull String barcode, @Nullable String description) {
+    public boolean addBarcodeItem(@NonNull String barcode, @Nullable String description) {
         ContentValues values = new ContentValues();
         values.put(InventoryDatabase.BarcodesTable.Keys.BARCODE, barcode);
         values.put(InventoryDatabase.BarcodesTable.Keys.DESCRIPTION, description);
 
         if (db.insert(InventoryDatabase.BarcodesTable.NAME, null, values) == -1) return false;
 
-        itemRecyclerAdapter.notifyItemInserted(index);
-        itemRecyclerAdapter.notifyItemRangeChanged(index, itemRecyclerAdapter.getItemCount());
+        itemRecyclerAdapter.notifyItemInserted(0);
+        itemRecyclerAdapter.notifyItemRangeChanged(0, itemRecyclerAdapter.getItemCount());
         itemRecyclerView.scrollToPosition(0);
         return true;
     }
@@ -162,7 +200,7 @@ public class InventoryActivity extends AppCompatActivity {
     }*/
 
     public void randomScan(View view) {
-        addBarcodeItem(0, "tnyc000" + new Random().nextInt(0xffff), null);
+        if (!addBarcodeItem("tnyc000" + new Random().nextInt(0xffff), null)) Toast.makeText(this, "Error adding item to the database", Toast.LENGTH_SHORT).show();
     }
 
     class SimpleViewHolder extends RecyclerView.ViewHolder {

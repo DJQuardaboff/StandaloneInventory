@@ -1,6 +1,7 @@
 package com.porterlee.mobileinventory;
 
 import android.content.ContentValues;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
@@ -111,14 +112,16 @@ public class PreloadActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu_main, menu);
+        inflater.inflate(R.menu.preload_menu, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.action_remove_all:
+            case R.id.action_inventory:
+                startActivity(new Intent(this, InventoryActivity.class));
+                finish();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

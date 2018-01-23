@@ -23,16 +23,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 System.out.println("Preload");
-                Intent i = new Intent(MainActivity.this, PreloadActivity.class);
-                startActivity(i);
+                startActivity(new Intent(MainActivity.this, PreloadActivity.class));
             }
         });
         builder.setPositiveButton("Standard Inventory", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 System.out.println("Standard Inventory");
-                Intent i = new Intent(MainActivity.this, InventoryActivity.class);
-                startActivity(i);
+                startActivity(new Intent(MainActivity.this, InventoryActivity.class));
             }
         });
         dialog = builder.create();
