@@ -74,7 +74,7 @@ public class PreloadActivity extends AppCompatActivity {
 
             @Override
             public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                View itemLayoutView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_layout, parent, false);
+                View itemLayoutView = LayoutInflater.from(parent.getContext()).inflate(R.layout.inventory_item_view, parent, false);
                 return new SimpleViewHolder(itemLayoutView);
             }
 

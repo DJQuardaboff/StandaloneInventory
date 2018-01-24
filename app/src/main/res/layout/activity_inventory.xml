@@ -9,6 +9,107 @@
     android:orientation="vertical"
     tools:context="com.porterlee.mobileinventory.MainActivity">
 
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/info_layout"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent" >
+
+        <EditText
+            android:id="@+id/barcode_field"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/current_location_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/current_location_title_string"
+            android:paddingStart="8dp"
+            android:paddingLeft="8dp"
+            android:paddingEnd="8dp"
+            android:paddingRight="8dp"
+            android:textSize="20sp"
+            app:layout_constraintTop_toBottomOf="@id/barcode_field"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/current_location"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:text="-"
+            app:layout_constraintBaseline_toBaselineOf="@+id/current_location_title"
+            app:layout_constraintStart_toEndOf="@+id/current_location_title" />
+
+        <TextView
+            android:id="@+id/last_scan_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/last_scan_title_string"
+            android:paddingStart="8dp"
+            android:paddingLeft="8dp"
+            android:paddingEnd="8dp"
+            android:paddingRight="8dp"
+            android:textSize="20sp"
+            app:layout_constraintTop_toBottomOf="@id/current_location_title"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <TextView
+            android:id="@+id/last_scan"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:text="-"
+            app:layout_constraintBaseline_toBaselineOf="@+id/last_scan_title"
+            app:layout_constraintStart_toEndOf="@+id/last_scan_title" />
+
+        <TextView
+            android:id="@+id/total_items_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/total_items_title_string"
+            android:paddingStart="8dp"
+            android:paddingLeft="8dp"
+            android:paddingEnd="8dp"
+            android:paddingRight="8dp"
+            android:textSize="20sp"
+            app:layout_constraintTop_toBottomOf="@id/last_scan_title"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <TextView
+            android:id="@+id/total_items"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:text="-"
+            app:layout_constraintBaseline_toBaselineOf="@+id/total_items_title"
+            app:layout_constraintStart_toEndOf="@+id/total_items_title" />
+
+        <TextView
+            android:id="@+id/total_containers_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/total_containers_title_string"
+            android:paddingStart="8dp"
+            android:paddingLeft="8dp"
+            android:paddingEnd="8dp"
+            android:paddingRight="8dp"
+            android:textSize="20sp"
+            app:layout_constraintTop_toBottomOf="@id/total_items_title"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <TextView
+            android:id="@+id/total_containers"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:text="-"
+            app:layout_constraintBaseline_toBaselineOf="@+id/total_containers_title"
+            app:layout_constraintStart_toEndOf="@+id/total_containers_title" />
+
+    </android.support.constraint.ConstraintLayout>
+
     <android.support.v7.widget.RecyclerView
         android:id="@+id/item_list_view"
         android:layout_width="0dp"
@@ -16,7 +117,7 @@
         android:paddingBottom="60dp"
         android:clipToPadding="false"
         android:layoutAnimation="@anim/layout_animation"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/info_layout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent" />

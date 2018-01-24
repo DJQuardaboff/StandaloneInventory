@@ -41,7 +41,7 @@
             android:name=".PreloadActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
-            android:theme="@style/InventoryTheme" >
+            android:theme="@style/PreloadTheme" >
 
             <intent-filter>
                 <action android:name="com.porterlee.mobileinventory.PRELOAD" />
