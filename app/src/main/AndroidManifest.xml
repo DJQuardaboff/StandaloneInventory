@@ -4,7 +4,6 @@
     package="com.porterlee.mobileinventory">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -17,7 +16,8 @@
             android:name=".MainActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
-            android:theme="@style/MainTheme" >
+            android:theme="@style/MainTheme"
+            android:windowSoftInputMode="stateAlwaysHidden" >
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -29,7 +29,8 @@
             android:name=".InventoryActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
-            android:theme="@style/InventoryTheme" >
+            android:theme="@style/InventoryTheme"
+            android:windowSoftInputMode="stateAlwaysHidden" >
 
             <intent-filter>
                 <action android:name="com.porterlee.mobileinventory.INVENTORY" />
@@ -41,7 +42,8 @@
             android:name=".PreloadActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
-            android:theme="@style/PreloadTheme" >
+            android:theme="@style/PreloadTheme"
+            android:windowSoftInputMode="stateAlwaysHidden" >
 
             <intent-filter>
                 <action android:name="com.porterlee.mobileinventory.PRELOAD" />

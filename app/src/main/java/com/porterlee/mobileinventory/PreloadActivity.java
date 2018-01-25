@@ -40,7 +40,7 @@ public class PreloadActivity extends AppCompatActivity {
 
         db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + InventoryDatabase.FILE_NAME, null);
         //db.execSQL("DROP TABLE barcodes");
-        db.execSQL("CREATE TABLE IF NOT EXISTS " + InventoryDatabase.BarcodesTable.TABLE_CREATION);
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + InventoryDatabase.ItemTable.TABLE_CREATION);
 
         Button randomScanButton = findViewById(R.id.random_scan_button);
         randomScanButton.setOnClickListener(new View.OnClickListener() {
@@ -56,7 +56,7 @@ public class PreloadActivity extends AppCompatActivity {
         itemRecyclerAdapter = new RecyclerView.Adapter() {
             @Override
             public long getItemId(int i) {
-                Cursor cursor = db.rawQuery("SELECT " + InventoryDatabase.BarcodesTable.Keys.ID + " FROM " + InventoryDatabase.BarcodesTable.NAME + " ORDER BY " + InventoryDatabase.BarcodesTable.Keys.ID + " DESC LIMIT 1;", null);
+                Cursor cursor = db.rawQuery("SELECT " + InventoryDatabase.ID + " FROM " + InventoryDatabase.ItemTable.NAME + " ORDER BY " + InventoryDatabase.ID + " DESC LIMIT 1;", null);
                 cursor.moveToFirst();
                 long id = cursor.getLong(0);
                 cursor.close();
@@ -65,7 +65,7 @@ public class PreloadActivity extends AppCompatActivity {
 
             @Override
             public int getItemCount() {
-                Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + InventoryDatabase.BarcodesTable.NAME,null);
+                Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + InventoryDatabase.ItemTable.NAME,null);
                 cursor.moveToFirst();
                 int count = cursor.getInt(0);
                 cursor.close();
@@ -96,7 +96,7 @@ public class PreloadActivity extends AppCompatActivity {
                         popup.show();
                     }
                 });
-                Cursor cursor = db.rawQuery("SELECT * FROM " + InventoryDatabase.BarcodesTable.NAME + " LIMIT 1 OFFSET " + position,null);
+                Cursor cursor = db.rawQuery("SELECT * FROM " + InventoryDatabase.ItemTable.NAME + " LIMIT 1 OFFSET " + position,null);
                 ((SimpleViewHolder) holder).bindViews(cursor);
             }
 
@@ -133,7 +133,7 @@ public class PreloadActivity extends AppCompatActivity {
     }
 
     public boolean removeBarcodeItem(int index) {
-        if (db.delete(InventoryDatabase.BarcodesTable.NAME, InventoryDatabase.BarcodesTable.Keys.ID + " in ( SELECT " + InventoryDatabase.BarcodesTable.Keys.ID + " FROM " + InventoryDatabase.BarcodesTable.NAME + " LIMIT 1 OFFSET " + index + ")", null) > 0) {
+        if (db.delete(InventoryDatabase.ItemTable.NAME, InventoryDatabase.ID + " in ( SELECT " + InventoryDatabase.ID + " FROM " + InventoryDatabase.ItemTable.NAME + " LIMIT 1 OFFSET " + index + ")", null) > 0) {
             //itemRecyclerAdapter.notifyDataSetChanged();
             itemRecyclerAdapter.notifyItemRemoved(index);
             itemRecyclerAdapter.notifyItemRangeChanged(index, itemRecyclerAdapter.getItemCount() - index);
@@ -143,10 +143,10 @@ public class PreloadActivity extends AppCompatActivity {
 
     public boolean addBarcodeItem(int index, @NonNull String barcode, @Nullable String description) {
         ContentValues values = new ContentValues();
-        values.put(InventoryDatabase.BarcodesTable.Keys.BARCODE, barcode);
-        values.put(InventoryDatabase.BarcodesTable.Keys.DESCRIPTION, description);
+        values.put(InventoryDatabase.ItemTable.Keys.BARCODE, barcode);
+        values.put(InventoryDatabase.ItemTable.Keys.DESCRIPTION, description);
 
-        if (db.insert(InventoryDatabase.BarcodesTable.NAME, null, values) == -1) return false;
+        if (db.insert(InventoryDatabase.ItemTable.NAME, null, values) == -1) return false;
 
         itemRecyclerAdapter.notifyItemInserted(index);
         itemRecyclerAdapter.notifyItemRangeChanged(index, itemRecyclerAdapter.getItemCount());
@@ -178,8 +178,8 @@ public class PreloadActivity extends AppCompatActivity {
 
         void bindViews(Cursor cursor) {
             cursor.moveToFirst();
-            String barcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BarcodesTable.Keys.BARCODE));
-            String description = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BarcodesTable.Keys.DESCRIPTION));
+            String barcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.ItemTable.Keys.BARCODE));
+            String description = cursor.getString(cursor.getColumnIndex(InventoryDatabase.ItemTable.Keys.DESCRIPTION));
             cursor.close();
             if (true) {//ready) {
                 progressLoading.setVisibility(View.GONE);

@@ -4,6 +4,8 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.storage.StorageManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 
@@ -14,6 +16,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_SHARED.equals(state)) {
+            System.out.println("working as intended");
+        } else {
+            System.out.println("not working as intended");
+        }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
@@ -23,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 System.out.println("Preload");
+                dialog.dismiss();
                 startActivity(new Intent(MainActivity.this, PreloadActivity.class));
             }
         });
@@ -30,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 System.out.println("Standard Inventory");
+                dialog.dismiss();
                 startActivity(new Intent(MainActivity.this, InventoryActivity.class));
             }
         });
