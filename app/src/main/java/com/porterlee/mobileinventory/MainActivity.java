@@ -23,6 +23,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (true) {
+            startActivity(new Intent(MainActivity.this, InventoryActivity.class));
+            finish();
+            return;
+        }
         setContentView(R.layout.main_layout);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);

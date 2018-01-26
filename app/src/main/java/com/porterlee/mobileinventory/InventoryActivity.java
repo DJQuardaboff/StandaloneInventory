@@ -14,6 +14,7 @@ import android.os.Environment;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.support.annotation.NonNull;
+import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -27,8 +28,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.ImageButton;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -56,7 +57,7 @@ public class InventoryActivity extends AppCompatActivity {
     private static final String IS_LIKE_PROCESS_CLAUSE = BarcodeTable.Keys.BARCODE + " LIKE \'L3%\'";
     private static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
     private static final int maxItemHistoryIncrease = 25;
-    private static int maxItemHistory = maxItemHistoryIncrease;
+    private static int maxItemHistory = 0;
     private static ScanResultReceiver resultReciever;
     private static IntentFilter resultFilter;
     private RecyclerView itemRecyclerView;
@@ -78,6 +79,7 @@ public class InventoryActivity extends AppCompatActivity {
         db.execSQL("CREATE TABLE IF NOT EXISTS " + BarcodeTable.TABLE_CREATION);
 
         itemRecyclerView = findViewById(R.id.item_list_view);
+        itemRecyclerView.setHasFixedSize(true);
         itemRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         itemRecyclerAdapter = new RecyclerView.Adapter() {
             @Override
@@ -129,6 +131,7 @@ public class InventoryActivity extends AppCompatActivity {
                 });
                 Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.DESCRIPTION + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE + " ORDER BY " + BarcodeTable.Keys.DATE_TIME + " DESC LIMIT 1 OFFSET " + position, null);
                 ((SimpleViewHolder) holder).bindViews(cursor);
+                cursor.close();
             }
 
             @Override
@@ -147,15 +150,28 @@ public class InventoryActivity extends AppCompatActivity {
             }
         });
         itemRecyclerView.setAdapter(itemRecyclerAdapter);
-        RecyclerView.ItemAnimator itemRecyclerAnimator = new DefaultItemAnimator();
+        final RecyclerView.ItemAnimator itemRecyclerAnimator = new DefaultItemAnimator();
         itemRecyclerAnimator.setAddDuration(100);
         itemRecyclerAnimator.setChangeDuration(100);
         itemRecyclerAnimator.setMoveDuration(100);
         itemRecyclerAnimator.setRemoveDuration(100);
         itemRecyclerView.setItemAnimator(itemRecyclerAnimator);
+
         //for (int i = 0; i < 10; i++) {
             //randomScan(null);
         //}
+
+        final ConstraintLayout layout = (ConstraintLayout) findViewById(R.id.inventory_layout);
+        ViewTreeObserver vto = layout.getViewTreeObserver();
+        vto.addOnGlobalLayoutListener (new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                layout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                //System.out.println("layout loaded");
+                maxItemHistory = maxItemHistoryIncrease;
+                itemRecyclerAdapter.notifyItemRangeInserted(0, itemRecyclerAdapter.getItemCount());
+            }
+        });
         itemRecyclerAdapter.notifyDataSetChanged();
         updateInfo();
     }
@@ -167,6 +183,7 @@ public class InventoryActivity extends AppCompatActivity {
         resultFilter = new IntentFilter();
         resultFilter.setPriority(0);
         resultFilter.addAction("device.scanner.USERMSG");
+        registerReceiver(resultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null);
     }
 
     @Override
@@ -186,25 +203,28 @@ public class InventoryActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_remove_all:
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setCancelable(true);
-                builder.setTitle("Clear Inventory");
-                builder.setMessage("Are you sure you want to clear this inventory?");
-                builder.setNegativeButton("no", null);
-                builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        //for (int i = getAllCount() - 1; i >= 0; i--) {
+                if (itemRecyclerAdapter.getItemCount() > 0) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setCancelable(true);
+                    builder.setTitle("Clear Inventory");
+                    builder.setMessage("Are you sure you want to clear this inventory?");
+                    builder.setNegativeButton("no", null);
+                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            //for (int i = getAllCount() - 1; i >= 0; i--) {
                             //removeBarcodeItem(i);
-                        //}
-                        db.delete(BarcodeTable.NAME, null, null);
-                        itemRecyclerAdapter.notifyDataSetChanged();
-                        itemRecyclerAdapter.notifyItemRangeRemoved(0, itemRecyclerAdapter.getItemCount());
-                        updateInfo();
-                        Toast.makeText(InventoryActivity.this, "Inventory cleared", Toast.LENGTH_SHORT).show();
-                    }
-                });
-                builder.create().show();
+                            //}
+                            db.delete(BarcodeTable.NAME, null, null);
+                            itemRecyclerAdapter.notifyDataSetChanged();
+                            itemRecyclerAdapter.notifyItemRangeRemoved(0, itemRecyclerAdapter.getItemCount());
+                            updateInfo();
+                            Toast.makeText(InventoryActivity.this, "Inventory cleared", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    builder.create().show();
+                } else
+                    Toast.makeText(this, "There are no items in this inventory", Toast.LENGTH_SHORT).show();
                 return true;
             case R.id.action_save_to_file:
                 saveToFile();
@@ -345,8 +365,9 @@ public class InventoryActivity extends AppCompatActivity {
                     locationCursor.close();
                     //System.out.println(locationText);
                     if (!locationText.equals(line)) {
-                        System.out.println(locationText);
-                        System.out.println(line);
+                        //System.out.println("Error at item #" + i + " in file output");
+                        //System.out.println("Correct String: " + locationText);
+                        //System.out.println("String in file: " + line);
                         Toast.makeText(this, "There was a problem verifying the output file", Toast.LENGTH_SHORT).show();
                         return;
                     }
@@ -355,8 +376,8 @@ public class InventoryActivity extends AppCompatActivity {
                 String itemText = itemCursor.getString(itemCursor.getColumnIndex(InventoryDatabase.BARCODE)) + "|" + formatDate(itemCursor.getLong(itemCursor.getColumnIndex(InventoryDatabase.DATE_TIME)));
                 //System.out.println(itemText);
                 if (!itemText.equals(line)) {
-                    System.out.println(itemText);
-                    System.out.println(line);
+                    //System.out.println(itemText);
+                    //System.out.println(line);
                     Toast.makeText(this, "There was a problem verifying the output file", Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -377,8 +398,6 @@ public class InventoryActivity extends AppCompatActivity {
         } catch (IOException e) {
             Toast.makeText(this, "IOException occured while verifying output", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
         }
 
         Toast.makeText(this, "Saved to file", Toast.LENGTH_SHORT).show();
@@ -388,7 +407,7 @@ public class InventoryActivity extends AppCompatActivity {
         Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + " FROM " + BarcodeTable.NAME + " WHERE ( " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE + " ) AND " + BarcodeTable.Keys.BARCODE + " = ?", new String[] {barcode});
         if (cursor.getCount() > 0) {
             cursor.close();
-            Toast.makeText(this, "Duplicate barcode scanned", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Duplicate " + (isItem(barcode) ? "item" : "container") + " scanned", Toast.LENGTH_SHORT).show();
             return;
         }
         cursor.close();
@@ -490,7 +509,7 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public void addBarcodeLocation(String barcode) {
-        System.out.println("location: " + barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
+        //System.out.println("location: " + barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
         ContentValues newLocation = new ContentValues();
         newLocation.put(InventoryDatabase.BARCODE, barcode);
         newLocation.put(InventoryDatabase.LOCATION_ID, -1);
@@ -539,16 +558,16 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     class SimpleViewHolder extends RecyclerView.ViewHolder {
-        private ProgressBar progressLoading;
+        //private ProgressBar progressLoading;
         private TextView itemBarcode;
         private TextView itemDescription;
         private ImageButton expandedMenu;
 
         SimpleViewHolder(final View itemView) {
             super(itemView);
-            progressLoading = itemView.findViewById(R.id.progress_loading);
+            //progressLoading = itemView.findViewById(R.id.progress_loading);
             itemBarcode = itemView.findViewById(R.id.item_barcode);
-            itemDescription = itemView.findViewById(R.id.item_description);
+            itemDescription = itemView.findViewById(R.id.item_location);
             expandedMenu = itemView.findViewById(R.id.menu_button);
         }
 
@@ -556,9 +575,8 @@ public class InventoryActivity extends AppCompatActivity {
             cursor.moveToFirst();
             String barcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE));
             String description = cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION));
-            cursor.close();
-            if (true) {//ready) {
-                progressLoading.setVisibility(View.GONE);
+            //if (ready) {
+                //progressLoading.setVisibility(View.GONE);
                 if (barcode != null) {
                     itemBarcode.setText(barcode);
                     itemBarcode.setVisibility(View.VISIBLE);
@@ -568,12 +586,12 @@ public class InventoryActivity extends AppCompatActivity {
                     itemDescription.setVisibility(View.VISIBLE);
                 } else itemDescription.setVisibility(View.GONE);
                 expandedMenu.setVisibility(View.VISIBLE);
-            } else {
-                progressLoading.setVisibility(View.VISIBLE);
-                itemBarcode.setVisibility(View.GONE);
-                itemDescription.setVisibility(View.GONE);
-                expandedMenu.setVisibility(View.GONE);
-            }
+            //} else {
+                //progressLoading.setVisibility(View.VISIBLE);
+                //itemBarcode.setVisibility(View.GONE);
+                //itemDescription.setVisibility(View.GONE);
+                //expandedMenu.setVisibility(View.GONE);
+            //}
         }
     }
 

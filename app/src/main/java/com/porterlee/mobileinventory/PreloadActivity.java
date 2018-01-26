@@ -8,15 +8,12 @@ import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -36,15 +33,11 @@ public class PreloadActivity extends AppCompatActivity {
 
         db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + InventoryDatabase.FILE_NAME, null);
         //db.execSQL("DROP TABLE barcodes");
-        //db.execSQL("CREATE TABLE IF NOT EXISTS " + InventoryDatabase.ItemTable.TABLE_CREATION);
-
-        Button randomScanButton = findViewById(R.id.random_scan_button);
-        /*randomScanButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                randomScan(v);
-            }
-        });*/
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadDatabase.ItemTable.TABLE_CREATION);
+        //db.execSQL("DROP TABLE barcodes");
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadDatabase.ItemTable.TABLE_CREATION);
+        //db.execSQL("DROP TABLE barcodes");
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadDatabase.ItemTable.TABLE_CREATION);
 
         itemRecyclerView = findViewById(R.id.item_list_view);
         itemRecyclerView.setHasFixedSize(true);
@@ -52,50 +45,22 @@ public class PreloadActivity extends AppCompatActivity {
         itemRecyclerAdapter = new RecyclerView.Adapter() {
             @Override
             public long getItemId(int i) {
-                //Cursor cursor = db.rawQuery("SELECT " + InventoryDatabase.ID + " FROM " + InventoryDatabase.ItemTable.NAME + " ORDER BY " + InventoryDatabase.ID + " DESC LIMIT 1;", null);
-                //cursor.moveToFirst();
-                //long id = cursor.getLong(0);
-                //cursor.close();
-                //return id;
-                return -1;
+                return 0;
             }
 
             @Override
             public int getItemCount() {
-                //Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + InventoryDatabase.ItemTable.NAME,null);
-                //cursor.moveToFirst();
-                //int count = cursor.getInt(0);
-                //cursor.close();
-                //return count;
                 return 0;
             }
 
             @Override
             public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                View itemLayoutView = LayoutInflater.from(parent.getContext()).inflate(R.layout.inventory_item_layout, parent, false);
-                return new SimpleViewHolder(itemLayoutView);
+                return null;
             }
 
             @Override
             public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
-                ((SimpleViewHolder) holder).expandedMenu.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        PopupMenu popup = new PopupMenu(PreloadActivity.this, view);
-                        MenuInflater inflater = popup.getMenuInflater();
-                        inflater.inflate(R.menu.popup_menu, popup.getMenu());
-                        popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-                            @Override
-                            public boolean onMenuItemClick(MenuItem menuItem) {
-                                //removeBarcodeItem(holder.getAdapterPosition());
-                                return true;
-                            }
-                        });
-                        popup.show();
-                    }
-                });
-                Cursor cursor = db.rawQuery("SELECT * FROM " + InventoryDatabase.BarcodeTable.NAME + " LIMIT 1 OFFSET " + position,null);
-                ((SimpleViewHolder) holder).bindViews(cursor);
+
             }
 
             @Override
@@ -136,7 +101,7 @@ public class PreloadActivity extends AppCompatActivity {
             super(itemView);
             progressLoading = itemView.findViewById(R.id.progress_loading);
             itemBarcode = itemView.findViewById(R.id.item_barcode);
-            itemDescription = itemView.findViewById(R.id.item_description);
+            itemDescription = itemView.findViewById(R.id.item_location);
             expandedMenu = itemView.findViewById(R.id.menu_button);
         }
 
