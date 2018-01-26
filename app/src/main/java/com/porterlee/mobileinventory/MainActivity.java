@@ -19,7 +19,6 @@ public class MainActivity extends AppCompatActivity {
     private Dialog dialog;
     static IScannerService iScanner = null;
     static DecodeResult mDecodeResult = new DecodeResult();
-    static Consumer simpleReference = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

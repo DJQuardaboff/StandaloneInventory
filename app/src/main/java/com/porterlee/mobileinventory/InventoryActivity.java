@@ -11,7 +11,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaScannerConnection;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.support.annotation.NonNull;
@@ -21,8 +20,6 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -30,14 +27,15 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 
@@ -50,6 +48,7 @@ import static com.porterlee.mobileinventory.MainActivity.iScanner;
 import static com.porterlee.mobileinventory.MainActivity.mDecodeResult;
 
 public class InventoryActivity extends AppCompatActivity {
+    private static final File TEMP_OUTPUT_FILE = new File(Environment.getExternalStorageDirectory(), "Download/invinfo_temp.txt");
     private static final File OUTPUT_FILE = new File(Environment.getExternalStorageDirectory(), "Download/invinfo.txt");
     private static final String IS_LIKE_ITEM_CLAUSE = BarcodeTable.Keys.BARCODE + " LIKE \'e1%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'E%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'t%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'T%\'";
     private static final String IS_LIKE_CONTAINER_CLAUSE = BarcodeTable.Keys.BARCODE + " LIKE \'m1%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'M%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'a%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'A%\'";
@@ -68,7 +67,6 @@ public class InventoryActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.inventory_layout);
-
         try {
             initScanner();
         } catch (RemoteException e) {
@@ -76,43 +74,15 @@ public class InventoryActivity extends AppCompatActivity {
         }
 
         db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + InventoryDatabase.FILE_NAME, null);
-        db.execSQL("DROP TABLE IF EXISTS items");
-        db.execSQL("DROP TABLE IF EXISTS containers");
-        db.execSQL("DROP TABLE IF EXISTS locations");
+        //db.execSQL("DROP TABLE IF EXISTS " + BarcodeTable.NAME);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + BarcodeTable.TABLE_CREATION);
-
-        final EditText barcodeField = findViewById(R.id.barcode_field);
-        this.<EditText>findViewById(R.id.barcode_field).addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) { }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                String barcode = s.toString();
-                if (barcode.length() >= 4) {
-                    if (barcode.equals(">><<")) {
-                        if (barcodeField != null) barcodeField.setText("");
-                    } else if ((barcode.startsWith(">>")) && (barcode.endsWith("<<"))) {
-                        if (barcodeField != null) barcodeField.setText("");
-                        barcode = barcode.substring(2);
-                        barcode = barcode.substring(0, barcode.length() - 2);
-                        scanBarcode(barcode);
-                    } else if (barcode.endsWith("<<")) {
-                        if (barcodeField != null) barcodeField.setText("");
-                    }
-                }
-            }
-        });
 
         itemRecyclerView = findViewById(R.id.item_list_view);
         itemRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         itemRecyclerAdapter = new RecyclerView.Adapter() {
             @Override
             public long getItemId(int i) {
-                Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.ID + " FROM " + BarcodeTable.NAME + " ORDER BY " + BarcodeTable.Keys.DATE_TIME + " LIMIT 1 OFFSET " + i, null);
+                Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.ID + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE + " ORDER BY " + BarcodeTable.Keys.DATE_TIME + " DESC LIMIT 1 OFFSET " + i, null);
                 cursor.moveToFirst();
                 long id = cursor.getLong(0);
                 cursor.close();
@@ -146,7 +116,7 @@ public class InventoryActivity extends AppCompatActivity {
                                 Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + " FROM " + BarcodeTable.NAME + " WHERE " + BarcodeTable.Keys.ID + " = " + itemRecyclerAdapter.getItemId(holder.getAdapterPosition()), null);
                                 cursor.moveToFirst();
                                 String barcode = cursor.getString(0);
-                                System.out.println(barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
+                                //System.out.println(barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
                                 cursor.close();
                                 if (isContainer(barcode)) removeBarcodeContainer(holder.getAdapterPosition());
                                 if (isItem(barcode)) removeBarcodeItem(holder.getAdapterPosition());
@@ -197,7 +167,6 @@ public class InventoryActivity extends AppCompatActivity {
         resultFilter = new IntentFilter();
         resultFilter.setPriority(0);
         resultFilter.addAction("device.scanner.USERMSG");
-        System.out.println(registerReceiver(resultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null) == null);
     }
 
     @Override
@@ -238,7 +207,7 @@ public class InventoryActivity extends AppCompatActivity {
                 builder.create().show();
                 return true;
             case R.id.action_save_to_file:
-                Toast.makeText(this, saveToFile() ? "Saved to file" : "Error saving to file", Toast.LENGTH_SHORT).show();
+                saveToFile();
                 return true;
             case R.id.action_preload:
                 startActivity(new Intent(this, PreloadActivity.class));
@@ -309,70 +278,113 @@ public class InventoryActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.total_containers)).setText(String.valueOf(getContainerCount()));
     }
 
-    public boolean saveToFile() {
+    public void saveToFile() {
         try {
             //System.out.println(OUTPUT_FILE.exists() + "-" + OUTPUT_FILE.delete() + "-" + OUTPUT_FILE.createNewFile() + "-" + OUTPUT_FILE.getAbsoluteFile());
-            //noinspection ResultOfMethodCallIgnored
-            OUTPUT_FILE.delete();
-            //noinspection ResultOfMethodCallIgnored
-            OUTPUT_FILE.createNewFile();
+            if (OUTPUT_FILE.exists() && !OUTPUT_FILE.delete()) {
+                Toast.makeText(this, "Could not delete existing output file", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!TEMP_OUTPUT_FILE.createNewFile()) {
+                Toast.makeText(this, "Could not create new output file", Toast.LENGTH_SHORT).show();
+                return;
+            }
         } catch (IOException e) {
+            Toast.makeText(this, "Could not create new output file", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
-            return false;
+            return;
         }
 
-        Cursor itemCursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.LOCATION_ID + ", " + BarcodeTable.Keys.DATE_TIME + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE + " ORDER BY " + InventoryDatabase.DATE_TIME + " ASC", null);
-        itemCursor.moveToFirst();
-        int itemBarcodeIndex = itemCursor.getColumnIndex(BarcodeTable.Keys.BARCODE);
-        int itemLocationIdIndex = itemCursor.getColumnIndex(BarcodeTable.Keys.LOCATION_ID);
-        int itemDateTimeIndex = itemCursor.getColumnIndex(BarcodeTable.Keys.DATE_TIME);
-        long currentLocation = -1;
         try {
-            PrintStream printStream = new PrintStream(OUTPUT_FILE);
+            Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE,null);
+            cursor.moveToFirst();
+            int count = cursor.getInt(cursor.getColumnIndex(cursor.getColumnNames()[0]));
+            cursor.close();
+            long currentLocation = -1;
 
-            while (!itemCursor.isAfterLast()) {
-                long tempLocation = itemCursor.getLong(itemLocationIdIndex);
+            PrintStream printStream = new PrintStream(TEMP_OUTPUT_FILE);
+            Cursor itemCursor;
+            Cursor locationCursor;
+
+            for (int i = 0; i < count; i++) {
+                itemCursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.LOCATION_ID + ", " + BarcodeTable.Keys.DATE_TIME + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE + " ORDER BY " + InventoryDatabase.DATE_TIME + " ASC LIMIT 1 OFFSET " + i, null);
+                itemCursor.moveToFirst();
+                long tempLocation = itemCursor.getLong(itemCursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
                 if (tempLocation != currentLocation) {
                     currentLocation = tempLocation;
-                    Cursor locationCursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.DATE_TIME + " FROM " + BarcodeTable.NAME + " WHERE " + " ( " + IS_LIKE_LOCATION_CLAUSE + " ) " + " AND " + BarcodeTable.Keys.ID + " = " + currentLocation + " LIMIT 1", null);
+                    locationCursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.DATE_TIME + " FROM " + BarcodeTable.NAME + " WHERE " + " ( " + IS_LIKE_LOCATION_CLAUSE + " ) " + " AND " + BarcodeTable.Keys.ID + " = " + currentLocation + " LIMIT 1", null);
                     locationCursor.moveToFirst();
-                    String locationText = locationCursor.getString(locationCursor.getColumnIndex(BarcodeTable.Keys.BARCODE)) + "|" + formatDate(locationCursor.getLong(locationCursor.getColumnIndex(BarcodeTable.Keys.DATE_TIME)));
+                    String locationText = locationCursor.getString(locationCursor.getColumnIndex(InventoryDatabase.BARCODE)) + "|" + formatDate(locationCursor.getLong(locationCursor.getColumnIndex(InventoryDatabase.DATE_TIME)));
                     locationCursor.close();
                     //System.out.println(locationText);
                     printStream.println(locationText);
 
                     printStream.flush();
                 }
-                String itemText = itemCursor.getString(itemBarcodeIndex) + "|" + formatDate(itemCursor.getLong(itemDateTimeIndex));
+                String itemText = itemCursor.getString(itemCursor.getColumnIndex(InventoryDatabase.BARCODE)) + "|" + formatDate(itemCursor.getLong(itemCursor.getColumnIndex(InventoryDatabase.DATE_TIME)));
                 //System.out.println(itemText);
                 printStream.println(itemText);
                 printStream.flush();
 
-                itemCursor.moveToNext();
+                itemCursor.close();
             }
             printStream.close();
+
+            BufferedReader br = new BufferedReader(new FileReader(TEMP_OUTPUT_FILE));
+            String line;
+            for (int i = 0; i < count; i++) {
+                line = br.readLine();
+                itemCursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.LOCATION_ID + ", " + BarcodeTable.Keys.DATE_TIME + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE + " ORDER BY " + InventoryDatabase.DATE_TIME + " ASC LIMIT 1 OFFSET " + i, null);
+                itemCursor.moveToFirst();
+                long tempLocation = itemCursor.getLong(itemCursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
+                if (tempLocation != currentLocation) {
+                    currentLocation = tempLocation;
+                    locationCursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.DATE_TIME + " FROM " + BarcodeTable.NAME + " WHERE " + " ( " + IS_LIKE_LOCATION_CLAUSE + " ) " + " AND " + BarcodeTable.Keys.ID + " = " + currentLocation + " LIMIT 1", null);
+                    locationCursor.moveToFirst();
+                    String locationText = locationCursor.getString(locationCursor.getColumnIndex(InventoryDatabase.BARCODE)) + "|" + formatDate(locationCursor.getLong(locationCursor.getColumnIndex(InventoryDatabase.DATE_TIME)));
+                    locationCursor.close();
+                    //System.out.println(locationText);
+                    if (!locationText.equals(line)) {
+                        System.out.println(locationText);
+                        System.out.println(line);
+                        Toast.makeText(this, "There was a problem verifying the output file", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    line = br.readLine();
+                }
+                String itemText = itemCursor.getString(itemCursor.getColumnIndex(InventoryDatabase.BARCODE)) + "|" + formatDate(itemCursor.getLong(itemCursor.getColumnIndex(InventoryDatabase.DATE_TIME)));
+                //System.out.println(itemText);
+                if (!itemText.equals(line)) {
+                    System.out.println(itemText);
+                    System.out.println(line);
+                    Toast.makeText(this, "There was a problem verifying the output file", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                itemCursor.close();
+            }
+            br.close();
+
+            if (!TEMP_OUTPUT_FILE.renameTo(OUTPUT_FILE)) {
+                Toast.makeText(this, "Could not rename output file to \"" + OUTPUT_FILE.getName() + "\"", Toast.LENGTH_SHORT).show();
+                return;
+            }
             MediaScannerConnection.scanFile(this, new String[]{OUTPUT_FILE.getAbsolutePath()}, null, null);
 
         } catch (FileNotFoundException e) {
+            Toast.makeText(this, "Could not find file \"" + OUTPUT_FILE.getName() + "\", even though it was just created", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
-            return false;
+            return;
+        } catch (IOException e) {
+            Toast.makeText(this, "IOException occured while verifying output", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        itemCursor.close();
-        return true;
+
+        Toast.makeText(this, "Saved to file", Toast.LENGTH_SHORT).show();
     }
 
     public void scanBarcode(String barcode) {
-        if (barcode.length() >= 4) {
-            if (barcode.equals(">><<")) {
-                Toast.makeText(this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
-                return;
-            } else if ((barcode.startsWith(">>")) && (barcode.endsWith("<<"))) {
-                barcode = barcode.substring(2);
-                barcode = barcode.substring(0, barcode.length() - 2);
-            } else if (barcode.endsWith("<<")) {
-                Toast.makeText(this, "Error scanning barcode: Incorrect prefix", Toast.LENGTH_SHORT).show();
-            }
-        } else return;
         Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + " FROM " + BarcodeTable.NAME + " WHERE ( " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE + " ) AND " + BarcodeTable.Keys.BARCODE + " = ?", new String[] {barcode});
         if (cursor.getCount() > 0) {
             cursor.close();
@@ -392,7 +404,7 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public void addBarcodeItem(@NonNull String barcode) {
-        System.out.println("item: " + barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
+        //System.out.println("item: " + barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
         long lastLocationId = getLastLocationId();
         if (lastLocationId == -1) {
             Toast.makeText(this, "A location has not been scanned", Toast.LENGTH_SHORT).show();
@@ -417,7 +429,7 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public void removeBarcodeItem(int index) {
-        System.out.println("remove item " + index);
+        //System.out.println("remove item " + index);
         if (db.delete(BarcodeTable.NAME, InventoryDatabase.ID + " = " + itemRecyclerAdapter.getItemId(index), null) > 0) {
             itemRecyclerAdapter.notifyItemRemoved(index);
             itemRecyclerAdapter.notifyItemRangeChanged(index, itemRecyclerAdapter.getItemCount() - index);
@@ -435,7 +447,7 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public void addBarcodeContainer(@NonNull String barcode) {
-        System.out.println("container: " + barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
+        //System.out.println("container: " + barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
         long lastLocationId = getLastLocationId();
         if (lastLocationId == -1) {
             Toast.makeText(this, "A location has not been scanned", Toast.LENGTH_SHORT).show();
@@ -460,7 +472,7 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public void removeBarcodeContainer(int index) {
-        System.out.println("remove container " + index);
+        //System.out.println("remove container " + index);
         if (db.delete(BarcodeTable.NAME, InventoryDatabase.ID + " = " + itemRecyclerAdapter.getItemId(index), null) > 0) {
             itemRecyclerAdapter.notifyItemRemoved(index);
             itemRecyclerAdapter.notifyItemRangeChanged(index, itemRecyclerAdapter.getItemCount() - index);
@@ -511,15 +523,15 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public boolean isItem(@NonNull String barcode) {
-        return barcode.startsWith("e1") || barcode.startsWith("E") || barcode.startsWith("t") || barcode.startsWith("T");
+        return barcode.startsWith("e1") || barcode.startsWith("E");// || barcode.startsWith("t") || barcode.startsWith("T");
     }
 
     public boolean isContainer(@NonNull String barcode) {
-        return barcode.startsWith("m1") || barcode.startsWith("M") || barcode.startsWith("a") || barcode.startsWith("A");
+        return barcode.startsWith("m1") || barcode.startsWith("M");// || barcode.startsWith("a") || barcode.startsWith("A");
     }
 
     public boolean isLocation(@NonNull String barcode) {
-        return barcode.startsWith("V") || barcode.startsWith("L5");
+        return barcode.startsWith("V");// || barcode.startsWith("L5");
     }
 
     public boolean isProcess(@NonNull String barcode) {
@@ -571,7 +583,20 @@ public class InventoryActivity extends AppCompatActivity {
             if (iScanner != null) {
                 try {
                     iScanner.aDecodeGetResult(mDecodeResult);
-                    scanBarcode(mDecodeResult.decodeValue);
+                    String barcode = mDecodeResult.decodeValue;
+                    if (barcode.length() >= 4) {
+                        if (barcode.equals(">><<")) {
+                            Toast.makeText(InventoryActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
+                            return;
+                        } else if ((barcode.startsWith(">>")) && (barcode.endsWith("<<"))) {
+                            barcode = barcode.substring(2);
+                            barcode = barcode.substring(0, barcode.length() - 2);
+                            if (barcode.equals("SCAN AGAIN")) return;
+                            scanBarcode(barcode);
+                        } else if (barcode.endsWith("<<")) {
+                            Toast.makeText(InventoryActivity.this, "Error scanning barcode: Incorrect prefix", Toast.LENGTH_SHORT).show();
+                        }
+                    } else return;
                     //System.out.println("symName: " + mDecodeResult.symName);
                     //System.out.println("decodeValue: " + mDecodeResult.decodeValue);
                 } catch (RemoteException e) {

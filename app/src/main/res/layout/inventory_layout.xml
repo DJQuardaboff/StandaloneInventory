@@ -13,7 +13,7 @@
         android:id="@+id/info_layout"
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
-        android:textSize="20sp" >
+        android:background="#10303F9F">
 
         <TextView
             android:id="@+id/current_location_title"
@@ -31,7 +31,6 @@
             android:id="@+id/current_location"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="20sp"
             app:layout_constraintBaseline_toBaselineOf="@+id/current_location_title"
             app:layout_constraintStart_toEndOf="@+id/current_location_title" />
 
@@ -44,7 +43,6 @@
             android:paddingLeft="8dp"
             android:paddingEnd="8dp"
             android:paddingRight="8dp"
-            android:textSize="20sp"
             app:layout_constraintTop_toBottomOf="@id/current_location_title"
             app:layout_constraintStart_toStartOf="parent"/>
 
@@ -52,7 +50,6 @@
             android:id="@+id/last_scan"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="20sp"
             app:layout_constraintBaseline_toBaselineOf="@+id/last_scan_title"
             app:layout_constraintStart_toEndOf="@+id/last_scan_title" />
 
@@ -65,7 +62,6 @@
             android:paddingLeft="8dp"
             android:paddingEnd="8dp"
             android:paddingRight="8dp"
-            android:textSize="20sp"
             app:layout_constraintTop_toBottomOf="@id/last_scan_title"
             app:layout_constraintStart_toStartOf="parent"/>
 
@@ -73,7 +69,6 @@
             android:id="@+id/total_items"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="20sp"
             app:layout_constraintBaseline_toBaselineOf="@+id/total_items_title"
             app:layout_constraintStart_toEndOf="@+id/total_items_title" />
 
@@ -86,7 +81,6 @@
             android:paddingLeft="8dp"
             android:paddingEnd="8dp"
             android:paddingRight="8dp"
-            android:textSize="20sp"
             app:layout_constraintTop_toBottomOf="@id/total_items_title"
             app:layout_constraintStart_toStartOf="parent"/>
 
@@ -94,7 +88,6 @@
             android:id="@+id/total_containers"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="20sp"
             app:layout_constraintBaseline_toBaselineOf="@+id/total_containers_title"
             app:layout_constraintStart_toEndOf="@+id/total_containers_title" />
 
