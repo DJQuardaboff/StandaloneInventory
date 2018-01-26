@@ -9,6 +9,10 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/device.hijack" />
+            <option value="$PROJECT_DIR$/device.nfc" />
+            <option value="$PROJECT_DIR$/device.scanner" />
+            <option value="$PROJECT_DIR$/device.service" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

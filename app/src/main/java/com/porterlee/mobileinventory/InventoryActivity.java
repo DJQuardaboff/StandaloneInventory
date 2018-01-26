@@ -1,13 +1,19 @@
 package com.porterlee.mobileinventory;
 
+import android.content.BroadcastReceiver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaScannerConnection;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -37,6 +43,12 @@ import java.io.PrintStream;
 
 import com.porterlee.mobileinventory.InventoryDatabase.BarcodeTable;
 
+import device.scanner.IScannerService;
+import device.scanner.ScannerService;
+
+import static com.porterlee.mobileinventory.MainActivity.iScanner;
+import static com.porterlee.mobileinventory.MainActivity.mDecodeResult;
+
 public class InventoryActivity extends AppCompatActivity {
     private static final File OUTPUT_FILE = new File(Environment.getExternalStorageDirectory(), "Download/invinfo.txt");
     private static final String IS_LIKE_ITEM_CLAUSE = BarcodeTable.Keys.BARCODE + " LIKE \'e1%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'E%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'t%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'T%\'";
@@ -46,15 +58,22 @@ public class InventoryActivity extends AppCompatActivity {
     private static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
     private static final int maxItemHistoryIncrease = 25;
     private static int maxItemHistory = maxItemHistoryIncrease;
+    private static ScanResultReceiver resultReciever;
+    private static IntentFilter resultFilter;
     private RecyclerView itemRecyclerView;
     private RecyclerView.Adapter itemRecyclerAdapter;
-    //private ScannerService scannerService;
     private SQLiteDatabase db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_inventory);
+        setContentView(R.layout.inventory_layout);
+
+        try {
+            initScanner();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
 
         db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + InventoryDatabase.FILE_NAME, null);
         db.execSQL("DROP TABLE IF EXISTS items");
@@ -109,7 +128,7 @@ public class InventoryActivity extends AppCompatActivity {
 
             @Override
             public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                View itemLayoutView = LayoutInflater.from(parent.getContext()).inflate(R.layout.inventory_item_view, parent, false);
+                View itemLayoutView = LayoutInflater.from(parent.getContext()).inflate(R.layout.inventory_item_layout, parent, false);
                 return new SimpleViewHolder(itemLayoutView);
             }
 
@@ -138,7 +157,7 @@ public class InventoryActivity extends AppCompatActivity {
                         popup.show();
                     }
                 });
-                Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.DESCRIPTION + " FROM " + BarcodeTable.NAME + " ORDER BY " + BarcodeTable.Keys.DATE_TIME + " DESC LIMIT 1 OFFSET " + position, null);
+                Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.DESCRIPTION + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE + " ORDER BY " + BarcodeTable.Keys.DATE_TIME + " DESC LIMIT 1 OFFSET " + position, null);
                 ((SimpleViewHolder) holder).bindViews(cursor);
             }
 
@@ -169,8 +188,22 @@ public class InventoryActivity extends AppCompatActivity {
         //}
         itemRecyclerAdapter.notifyDataSetChanged();
         updateInfo();
-        //scannerService = new ScannerService(this);
-        //DecodeResult decodeResult = new DecodeResult();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        resultReciever = new ScanResultReceiver();
+        resultFilter = new IntentFilter();
+        resultFilter.setPriority(0);
+        resultFilter.addAction("device.scanner.USERMSG");
+        System.out.println(registerReceiver(resultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null) == null);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(resultReciever);
     }
 
     @Override
@@ -213,6 +246,21 @@ public class InventoryActivity extends AppCompatActivity {
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void initScanner() throws RemoteException {
+        iScanner = IScannerService.Stub.asInterface(ServiceManager.getService("ScannerService"));
+
+        if (iScanner != null) {
+
+            iScanner.aDecodeAPIInit();
+            //try {
+                //Thread.sleep(500);
+            //} catch (InterruptedException e) {
+            //}
+            iScanner.aDecodeSetDecodeEnable(1);
+            iScanner.aDecodeSetResultType(ScannerService.ResultType.DCD_RESULT_USERMSG);
         }
     }
 
@@ -314,7 +362,24 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public void scanBarcode(String barcode) {
-        Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " OR", null);
+        if (barcode.length() >= 4) {
+            if (barcode.equals(">><<")) {
+                Toast.makeText(this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
+                return;
+            } else if ((barcode.startsWith(">>")) && (barcode.endsWith("<<"))) {
+                barcode = barcode.substring(2);
+                barcode = barcode.substring(0, barcode.length() - 2);
+            } else if (barcode.endsWith("<<")) {
+                Toast.makeText(this, "Error scanning barcode: Incorrect prefix", Toast.LENGTH_SHORT).show();
+            }
+        } else return;
+        Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + " FROM " + BarcodeTable.NAME + " WHERE ( " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE + " ) AND " + BarcodeTable.Keys.BARCODE + " = ?", new String[] {barcode});
+        if (cursor.getCount() > 0) {
+            cursor.close();
+            Toast.makeText(this, "Duplicate barcode scanned", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        cursor.close();
         if (isItem(barcode)) {
             addBarcodeItem(barcode);
         } else if (isContainer(barcode)) {
@@ -496,6 +561,22 @@ public class InventoryActivity extends AppCompatActivity {
                 itemBarcode.setVisibility(View.GONE);
                 itemDescription.setVisibility(View.GONE);
                 expandedMenu.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    public class ScanResultReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (iScanner != null) {
+                try {
+                    iScanner.aDecodeGetResult(mDecodeResult);
+                    scanBarcode(mDecodeResult.decodeValue);
+                    //System.out.println("symName: " + mDecodeResult.symName);
+                    //System.out.println("decodeValue: " + mDecodeResult.decodeValue);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

@@ -12,14 +12,8 @@
     <android.support.constraint.ConstraintLayout
         android:id="@+id/info_layout"
         android:layout_height="wrap_content"
-        android:layout_width="match_parent" >
-
-        <EditText
-            android:id="@+id/barcode_field"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:layout_constraintTop_toTopOf="parent"
-            android:inputType="text" />
+        android:layout_width="match_parent"
+        android:textSize="20sp" >
 
         <TextView
             android:id="@+id/current_location_title"
@@ -30,8 +24,7 @@
             android:paddingLeft="8dp"
             android:paddingEnd="8dp"
             android:paddingRight="8dp"
-            android:textSize="20sp"
-            app:layout_constraintTop_toBottomOf="@id/barcode_field"
+            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
 
         <TextView

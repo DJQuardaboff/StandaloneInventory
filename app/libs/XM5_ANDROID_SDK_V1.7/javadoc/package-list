@@ -1,0 +1,4 @@
+device.hijack
+device.nfc
+device.scanner
+device.service
