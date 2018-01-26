@@ -35,18 +35,19 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 
-import com.porterlee.mobileinventory.InventoryDatabase.ItemTable;
-import com.porterlee.mobileinventory.InventoryDatabase.ContainerTable;
-import com.porterlee.mobileinventory.InventoryDatabase.LocationTable;
+import com.porterlee.mobileinventory.InventoryDatabase.BarcodeTable;
 
 public class InventoryActivity extends AppCompatActivity {
     private static final File OUTPUT_FILE = new File(Environment.getExternalStorageDirectory(), "Download/invinfo.txt");
+    private static final String IS_LIKE_ITEM_CLAUSE = BarcodeTable.Keys.BARCODE + " LIKE \'e1%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'E%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'t%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'T%\'";
+    private static final String IS_LIKE_CONTAINER_CLAUSE = BarcodeTable.Keys.BARCODE + " LIKE \'m1%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'M%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'a%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'A%\'";
+    private static final String IS_LIKE_LOCATION_CLAUSE = BarcodeTable.Keys.BARCODE + " LIKE \'V%\' OR " + BarcodeTable.Keys.BARCODE + " LIKE \'L5%\'";
+    private static final String IS_LIKE_PROCESS_CLAUSE = BarcodeTable.Keys.BARCODE + " LIKE \'L3%\'";
     private static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
     private static final int maxItemHistoryIncrease = 25;
     private static int maxItemHistory = maxItemHistoryIncrease;
     private RecyclerView itemRecyclerView;
     private RecyclerView.Adapter itemRecyclerAdapter;
-    private RecyclerView.ItemAnimator itemRecyclerAnimator;
     //private ScannerService scannerService;
     private SQLiteDatabase db;
 
@@ -56,14 +57,10 @@ public class InventoryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_inventory);
 
         db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + InventoryDatabase.FILE_NAME, null);
-        db.execSQL("DROP TABLE IF EXISTS " + ItemTable.NAME);
-        db.execSQL("CREATE TABLE IF NOT EXISTS " + ItemTable.TABLE_CREATION);
-
-        db.execSQL("DROP TABLE IF EXISTS " + ContainerTable.NAME);
-        db.execSQL("CREATE TABLE IF NOT EXISTS " + ContainerTable.TABLE_CREATION);
-
-        db.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
-        db.execSQL("CREATE TABLE IF NOT EXISTS " + LocationTable.TABLE_CREATION);
+        db.execSQL("DROP TABLE IF EXISTS items");
+        db.execSQL("DROP TABLE IF EXISTS containers");
+        db.execSQL("DROP TABLE IF EXISTS locations");
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + BarcodeTable.TABLE_CREATION);
 
         final EditText barcodeField = findViewById(R.id.barcode_field);
         this.<EditText>findViewById(R.id.barcode_field).addTextChangedListener(new TextWatcher() {
@@ -96,10 +93,9 @@ public class InventoryActivity extends AppCompatActivity {
         itemRecyclerAdapter = new RecyclerView.Adapter() {
             @Override
             public long getItemId(int i) {
-                Cursor cursor = db.rawQuery("SELECT " + InventoryDatabase.ID + " FROM " + ItemTable.NAME + ", " + ContainerTable.NAME + " ORDER BY " + InventoryDatabase.DATE_TIME + " LIMIT 1 OFFSET " + i, null);
+                Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.ID + " FROM " + BarcodeTable.NAME + " ORDER BY " + BarcodeTable.Keys.DATE_TIME + " LIMIT 1 OFFSET " + i, null);
                 cursor.moveToFirst();
                 long id = cursor.getLong(0);
-                System.out.println(id);
                 cursor.close();
                 return id;
             }
@@ -128,9 +124,11 @@ public class InventoryActivity extends AppCompatActivity {
                         popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                             @Override
                             public boolean onMenuItemClick(MenuItem menuItem) {
-                                Cursor cursor = db.rawQuery("SELECT " + InventoryDatabase.BARCODE + " FROM " + ItemTable.NAME + ", " + ContainerTable.NAME + " WHERE " + InventoryDatabase.ID + " = " + itemRecyclerAdapter.getItemId(holder.getAdapterPosition()), null);
+                                Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + " FROM " + BarcodeTable.NAME + " WHERE " + BarcodeTable.Keys.ID + " = " + itemRecyclerAdapter.getItemId(holder.getAdapterPosition()), null);
                                 cursor.moveToFirst();
                                 String barcode = cursor.getString(0);
+                                System.out.println(barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
+                                cursor.close();
                                 if (isContainer(barcode)) removeBarcodeContainer(holder.getAdapterPosition());
                                 if (isItem(barcode)) removeBarcodeItem(holder.getAdapterPosition());
                                 updateInfo();
@@ -140,7 +138,7 @@ public class InventoryActivity extends AppCompatActivity {
                         popup.show();
                     }
                 });
-                Cursor cursor = db.rawQuery("SELECT * FROM " + ItemTable.NAME + ", " + ContainerTable.NAME + " ORDER BY " + InventoryDatabase.DATE_TIME + " DESC LIMIT 1 OFFSET " + position, null);
+                Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.DESCRIPTION + " FROM " + BarcodeTable.NAME + " ORDER BY " + BarcodeTable.Keys.DATE_TIME + " DESC LIMIT 1 OFFSET " + position, null);
                 ((SimpleViewHolder) holder).bindViews(cursor);
             }
 
@@ -160,7 +158,7 @@ public class InventoryActivity extends AppCompatActivity {
             }
         });
         itemRecyclerView.setAdapter(itemRecyclerAdapter);
-        itemRecyclerAnimator = new DefaultItemAnimator();
+        RecyclerView.ItemAnimator itemRecyclerAnimator = new DefaultItemAnimator();
         itemRecyclerAnimator.setAddDuration(100);
         itemRecyclerAnimator.setChangeDuration(100);
         itemRecyclerAnimator.setMoveDuration(100);
@@ -197,9 +195,7 @@ public class InventoryActivity extends AppCompatActivity {
                         //for (int i = getAllCount() - 1; i >= 0; i--) {
                             //removeBarcodeItem(i);
                         //}
-                        db.delete(ItemTable.NAME, null, null);
-                        db.delete(ContainerTable.NAME, null, null);
-                        db.delete(LocationTable.NAME, null, null);
+                        db.delete(BarcodeTable.NAME, null, null);
                         itemRecyclerAdapter.notifyDataSetChanged();
                         itemRecyclerAdapter.notifyItemRangeRemoved(0, itemRecyclerAdapter.getItemCount());
                         updateInfo();
@@ -221,41 +217,44 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public int getItemCount() {
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + ItemTable.NAME,null);
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE,null);
         cursor.moveToFirst();
-        int count = cursor.getInt(0);
+        int count = cursor.getInt(cursor.getColumnIndex(cursor.getColumnNames()[0]));
         cursor.close();
         return count;
     }
 
     public int getContainerCount() {
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + ContainerTable.NAME,null);
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_CONTAINER_CLAUSE,null);
         cursor.moveToFirst();
-        int count = cursor.getInt(0);
+        int count = cursor.getInt(cursor.getColumnIndex(cursor.getColumnNames()[0]));
         cursor.close();
         return count;
     }
 
     public int getLocationCount() {
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + LocationTable.NAME,null);
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_LOCATION_CLAUSE,null);
         cursor.moveToFirst();
-        int count = cursor.getInt(0);
+        int count = cursor.getInt(cursor.getColumnIndex(cursor.getColumnNames()[0]));
+        cursor.close();
+        return count;
+    }
+
+    public int getProcessCount() {
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_PROCESS_CLAUSE,null);
+        cursor.moveToFirst();
+        int count = cursor.getInt(cursor.getColumnIndex(cursor.getColumnNames()[0]));
         cursor.close();
         return count;
     }
 
     public void updateInfo() {
-        Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " ORDER BY " + InventoryDatabase.DATE_TIME + " DESC LIMIT 5", null);
+        Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_LOCATION_CLAUSE + " ORDER BY " + InventoryDatabase.DATE_TIME + " DESC LIMIT 1", null);
         cursor.moveToFirst();
         if (cursor.getCount() > 0) ((TextView) findViewById(R.id.current_location)).setText(cursor.getString(0)); else ((TextView) findViewById(R.id.current_location)).setText("-");
         cursor.close();
-        cursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + ", " + ContainerTable.Keys.BARCODE + " FROM " + ItemTable.NAME + ", " + ContainerTable.NAME + " ORDER BY " + ItemTable.Keys.DATE_TIME + " DESC, " + ContainerTable.Keys.DATE_TIME + " DESC LIMIT 1", null);
+        cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE + " ORDER BY " + BarcodeTable.Keys.DATE_TIME + " DESC LIMIT 1", null);
         cursor.moveToFirst();
-        while (!cursor.isAfterLast()) {
-            System.out.print(cursor.getString(cursor.getColumnIndex(ItemTable.Keys.BARCODE)) + " - ");
-            System.out.println(cursor.getString(cursor.getColumnIndex(ContainerTable.Keys.BARCODE)));
-            cursor.moveToNext();
-        }
         if (cursor.getCount() > 0) ((TextView) findViewById(R.id.last_scan)).setText(cursor.getString(0)); else ((TextView) findViewById(R.id.last_scan)).setText("-");
         cursor.close();
         ((TextView) findViewById(R.id.total_items)).setText(String.valueOf(getItemCount()));
@@ -265,18 +264,20 @@ public class InventoryActivity extends AppCompatActivity {
     public boolean saveToFile() {
         try {
             //System.out.println(OUTPUT_FILE.exists() + "-" + OUTPUT_FILE.delete() + "-" + OUTPUT_FILE.createNewFile() + "-" + OUTPUT_FILE.getAbsoluteFile());
+            //noinspection ResultOfMethodCallIgnored
             OUTPUT_FILE.delete();
+            //noinspection ResultOfMethodCallIgnored
             OUTPUT_FILE.createNewFile();
         } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
 
-        Cursor itemCursor = db.rawQuery("SELECT " + InventoryDatabase.BARCODE + ", " + InventoryDatabase.LOCATION_ID + ", " + InventoryDatabase.DATE_TIME + " FROM " + ItemTable.NAME + ", " + ContainerTable.NAME + " ORDER BY " + InventoryDatabase.DATE_TIME + " ASC", null);
+        Cursor itemCursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.LOCATION_ID + ", " + BarcodeTable.Keys.DATE_TIME + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " OR " + IS_LIKE_CONTAINER_CLAUSE + " ORDER BY " + InventoryDatabase.DATE_TIME + " ASC", null);
         itemCursor.moveToFirst();
-        int itemBarcodeIndex = itemCursor.getColumnIndex(ItemTable.Keys.BARCODE);
-        int itemLocationIdIndex = itemCursor.getColumnIndex(ItemTable.Keys.LOCATION_ID);
-        int itemDateTimeIndex = itemCursor.getColumnIndex(ItemTable.Keys.DATE_TIME);
+        int itemBarcodeIndex = itemCursor.getColumnIndex(BarcodeTable.Keys.BARCODE);
+        int itemLocationIdIndex = itemCursor.getColumnIndex(BarcodeTable.Keys.LOCATION_ID);
+        int itemDateTimeIndex = itemCursor.getColumnIndex(BarcodeTable.Keys.DATE_TIME);
         long currentLocation = -1;
         try {
             PrintStream printStream = new PrintStream(OUTPUT_FILE);
@@ -285,9 +286,9 @@ public class InventoryActivity extends AppCompatActivity {
                 long tempLocation = itemCursor.getLong(itemLocationIdIndex);
                 if (tempLocation != currentLocation) {
                     currentLocation = tempLocation;
-                    Cursor locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " WHERE " + InventoryDatabase.ID + " = " + currentLocation + " LIMIT 1", null);
+                    Cursor locationCursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + ", " + BarcodeTable.Keys.DATE_TIME + " FROM " + BarcodeTable.NAME + " WHERE " + " ( " + IS_LIKE_LOCATION_CLAUSE + " ) " + " AND " + BarcodeTable.Keys.ID + " = " + currentLocation + " LIMIT 1", null);
                     locationCursor.moveToFirst();
-                    String locationText = locationCursor.getString(locationCursor.getColumnIndex(LocationTable.Keys.BARCODE)) + "|" + formatDate(locationCursor.getLong(locationCursor.getColumnIndex(LocationTable.Keys.DATE_TIME)));
+                    String locationText = locationCursor.getString(locationCursor.getColumnIndex(BarcodeTable.Keys.BARCODE)) + "|" + formatDate(locationCursor.getLong(locationCursor.getColumnIndex(BarcodeTable.Keys.DATE_TIME)));
                     locationCursor.close();
                     //System.out.println(locationText);
                     printStream.println(locationText);
@@ -313,6 +314,7 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public void scanBarcode(String barcode) {
+        Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " OR", null);
         if (isItem(barcode)) {
             addBarcodeItem(barcode);
         } else if (isContainer(barcode)) {
@@ -325,6 +327,7 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public void addBarcodeItem(@NonNull String barcode) {
+        System.out.println("item: " + barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
         long lastLocationId = getLastLocationId();
         if (lastLocationId == -1) {
             Toast.makeText(this, "A location has not been scanned", Toast.LENGTH_SHORT).show();
@@ -335,7 +338,7 @@ public class InventoryActivity extends AppCompatActivity {
         newItem.put(InventoryDatabase.LOCATION_ID, lastLocationId);
         newItem.put(InventoryDatabase.DATE_TIME, System.currentTimeMillis());
 
-        if (db.insert(ItemTable.NAME, null, newItem) == -1) {
+        if (db.insert(BarcodeTable.NAME, null, newItem) == -1) {
             Toast.makeText(this, "Error adding item \"" + barcode + "\" to the inventory", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -349,14 +352,25 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public void removeBarcodeItem(int index) {
-        if (db.delete(ItemTable.NAME, InventoryDatabase.ID + " = " + itemRecyclerAdapter.getItemId(index), null) > 0) {
+        System.out.println("remove item " + index);
+        if (db.delete(BarcodeTable.NAME, InventoryDatabase.ID + " = " + itemRecyclerAdapter.getItemId(index), null) > 0) {
             itemRecyclerAdapter.notifyItemRemoved(index);
             itemRecyclerAdapter.notifyItemRangeChanged(index, itemRecyclerAdapter.getItemCount() - index);
             updateInfo();
-        } else Toast.makeText(InventoryActivity.this, "Error removing item \"" + index + "\" from the inventory", Toast.LENGTH_SHORT).show();
+        } else {
+            Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + " FROM " + BarcodeTable.NAME + " WHERE " + BarcodeTable.Keys.ID + " = " + itemRecyclerAdapter.getItemId(index), null);
+            String barcode = "";
+            if (cursor.getCount() > 0) {
+                cursor.moveToFirst();
+                barcode = cursor.getString(cursor.getColumnIndex(BarcodeTable.Keys.BARCODE));
+            }
+            cursor.close();
+            Toast.makeText(InventoryActivity.this, "Error removing item \"" + (barcode.equals("") ? "#" + index : barcode) + "\" from the inventory", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void addBarcodeContainer(@NonNull String barcode) {
+        System.out.println("container: " + barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
         long lastLocationId = getLastLocationId();
         if (lastLocationId == -1) {
             Toast.makeText(this, "A location has not been scanned", Toast.LENGTH_SHORT).show();
@@ -367,7 +381,7 @@ public class InventoryActivity extends AppCompatActivity {
         newContainer.put(InventoryDatabase.LOCATION_ID, lastLocationId);
         newContainer.put(InventoryDatabase.DATE_TIME, System.currentTimeMillis());
 
-        if (db.insert(ContainerTable.NAME, null, newContainer) == -1) {
+        if (db.insert(BarcodeTable.NAME, null, newContainer) == -1) {
             Toast.makeText(this, "Error adding container \"" + barcode + "\" to the inventory", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -381,22 +395,31 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public void removeBarcodeContainer(int index) {
-        if (db.delete(ContainerTable.NAME, InventoryDatabase.ID + " = " + itemRecyclerAdapter.getItemId(index), null) > 0) {
+        System.out.println("remove container " + index);
+        if (db.delete(BarcodeTable.NAME, InventoryDatabase.ID + " = " + itemRecyclerAdapter.getItemId(index), null) > 0) {
             itemRecyclerAdapter.notifyItemRemoved(index);
             itemRecyclerAdapter.notifyItemRangeChanged(index, itemRecyclerAdapter.getItemCount() - index);
             updateInfo();
         } else {
-            db.rawQuery("SELECT " + ContainerTable.Keys.BARCODE + " FROM " + ContainerTable.NAME + " WHERE " + ContainerTable.Keys.ID + " = " + itemRecyclerAdapter.getItemId(index), null);
-            Toast.makeText(InventoryActivity.this, "Error removing item \"" + index + "\" from the inventory", Toast.LENGTH_SHORT).show();
+            Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.BARCODE + " FROM " + BarcodeTable.NAME + " WHERE " + BarcodeTable.Keys.ID + " = " + itemRecyclerAdapter.getItemId(index), null);
+            String barcode = "";
+            if (cursor.getCount() > 0) {
+                cursor.moveToFirst();
+                barcode = cursor.getString(cursor.getColumnIndex(BarcodeTable.Keys.BARCODE));
+            }
+            cursor.close();
+            Toast.makeText(InventoryActivity.this, "Error removing container \"" + (barcode.equals("") ? "#" + index : barcode) + "\" from the inventory", Toast.LENGTH_SHORT).show();
         }
     }
 
     public void addBarcodeLocation(String barcode) {
+        System.out.println("location: " + barcode + "-" + isContainer(barcode) + "-" + isItem(barcode) + "-" + isLocation(barcode) + "-" + isProcess(barcode));
         ContentValues newLocation = new ContentValues();
         newLocation.put(InventoryDatabase.BARCODE, barcode);
+        newLocation.put(InventoryDatabase.LOCATION_ID, -1);
         newLocation.put(InventoryDatabase.DATE_TIME, System.currentTimeMillis());
 
-        if (db.insert(LocationTable.NAME, null, newLocation) == -1) {
+        if (db.insert(BarcodeTable.NAME, null, newLocation) == -1) {
             Toast.makeText(this, "Error adding location \"" + barcode + "\" to the inventory", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -404,14 +427,12 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     public long getLastLocationId() {
-        Cursor cursor = db.rawQuery("SELECT " + InventoryDatabase.ID + " FROM " + LocationTable.NAME + " ORDER BY " + InventoryDatabase.ID + " DESC LIMIT 1", null);
-        if (cursor.getCount() <= 0) {
-            cursor.close();
-            return -1;
+        Cursor cursor = db.rawQuery("SELECT " + BarcodeTable.Keys.ID + " FROM " + BarcodeTable.NAME + " WHERE " + IS_LIKE_LOCATION_CLAUSE + " ORDER BY " + BarcodeTable.Keys.DATE_TIME + " DESC LIMIT 1", null);
+        long id = -1;
+        if (cursor.getCount() > 0) {
+            cursor.moveToFirst();
+            id = cursor.getLong(cursor.getColumnIndex(InventoryDatabase.ID));
         }
-
-        cursor.moveToFirst();
-        long id = cursor.getLong(cursor.getColumnIndex(InventoryDatabase.ID));
         cursor.close();
         return id;
     }

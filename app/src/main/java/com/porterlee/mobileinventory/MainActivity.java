@@ -16,12 +16,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_SHARED.equals(state)) {
-            System.out.println("working as intended");
-        } else {
-            System.out.println("not working as intended");
-        }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
