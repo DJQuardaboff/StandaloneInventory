@@ -1,19 +1,15 @@
 package com.porterlee.mobileinventory;
 
 import android.app.Dialog;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.RemoteException;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 
-import java.util.function.Consumer;
-
 import device.scanner.DecodeResult;
 import device.scanner.IScannerService;
+
 
 public class MainActivity extends AppCompatActivity {
     private Dialog dialog;

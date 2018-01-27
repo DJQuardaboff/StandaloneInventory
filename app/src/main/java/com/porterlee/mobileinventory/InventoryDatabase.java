@@ -9,9 +9,9 @@ public class InventoryDatabase {
     public static final String DESCRIPTION = "description";
     public static final String DATE_TIME = "datetime";
 
-    public class BarcodeTable {
-        public static final String NAME = "barcodes";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + BARCODE + " TEXT, " + LOCATION_ID + " INTEGER, " + DESCRIPTION + " TEXT, " + DATE_TIME + " BIGINT )";
+    public class ItemTable {
+        public static final String NAME = "items";
+        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + BARCODE + " TEXT, " + LOCATION_ID + " INTEGER, " + DESCRIPTION + " TEXT, " + DATE_TIME + " BIGINT );";
         public class Keys {
             public static final String ID = NAME + '.' + InventoryDatabase.ID;
             public static final String BARCODE = NAME + '.' + InventoryDatabase.BARCODE;
@@ -21,9 +21,20 @@ public class InventoryDatabase {
         }
     }
 
+    public class LocationTable {
+        public static final String NAME = "locations";
+        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + BARCODE + " TEXT, " + DESCRIPTION + " TEXT, " + DATE_TIME + " BIGINT );";
+        public class Keys {
+            public static final String ID = NAME + '.' + InventoryDatabase.ID;
+            public static final String BARCODE = NAME + '.' + InventoryDatabase.BARCODE;
+            public static final String DESCRIPTION = NAME + '.' + InventoryDatabase.DESCRIPTION;
+            public static final String DATE_TIME = NAME + '.' + InventoryDatabase.DATE_TIME;
+        }
+    }
+
     public class PicturesTable {
         public static final String NAME = "pictures";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PICTURE + " BLOB, "+ DESCRIPTION + " TEXT, " + DATE_TIME + " BIGINT )";
+        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PICTURE + " BLOB, "+ DESCRIPTION + " TEXT, " + DATE_TIME + " BIGINT );";
         public class Keys {
             public static final String ID = NAME + '.' + InventoryDatabase.ID;
             public static final String PICTURE = NAME + '.' + InventoryDatabase.PICTURE;

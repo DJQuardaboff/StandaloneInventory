@@ -17,7 +17,7 @@
     </style>
 
     <style name="InfoTextView" parent="android:Widget.TextView">
-        <item name="android:textSize">18sp</item>
+        <item name="android:textSize">15sp</item>
     </style>
 
     <style name="PreloadTheme" parent="Theme.AppCompat.Light.DarkActionBar">
