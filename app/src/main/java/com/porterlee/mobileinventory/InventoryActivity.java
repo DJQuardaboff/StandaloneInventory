@@ -71,6 +71,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private static SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
     private static SQLiteStatement LAST_LOCATION_ID_STATEMENT;
     private MaterialProgressBar progressBar;
+    private Menu mOptionsMenu;
     private SaveToFileTask saveTask;
     private int maxItemHistory = maxItemHistoryIncrease;
     private ScanResultReceiver resultReciever;
@@ -219,7 +220,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         itemRecyclerAnimator.setRemoveDuration(100);
         itemRecyclerView.setItemAnimator(itemRecyclerAnimator);
 
-        //for (int i = 0; i < 5000; i++)
+        //for (int i = 0; i < 20000; i++)
             //randomScan();
 
         itemRecyclerAdapter.notifyDataSetChanged();
@@ -244,6 +245,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        mOptionsMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.inventory_menu, menu);
         return true;
@@ -262,6 +264,9 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
+                            if (saveTask != null) {
+                                return;
+                            }
                             int deletedCount = db.delete(ItemTable.NAME, "1", null);
                             db.delete(LocationTable.NAME, null, null);
 
@@ -292,8 +297,15 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     }
                 }
 
+                progressBar.setProgress(0);
+                progressBar.setVisibility(View.VISIBLE);
+                mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(false);
+                mOptionsMenu.findItem(R.id.cancel_save).setVisible(true);
+                mOptionsMenu.findItem(R.id.action_remove_all).setVisible(false);
+                mOptionsMenu.findItem(R.id.action_preload).setVisible(false);
+                onPrepareOptionsMenu(mOptionsMenu);
+
                 if (saveTask == null) {
-                    progressBar.setVisibility(View.VISIBLE);
                     saveTask = new SaveToFileTask();
                     saveTask.execute();
                 }
@@ -301,6 +313,29 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             case R.id.action_preload:
                 startActivity(new Intent(this, PreloadActivity.class));
                 finish();
+                return true;
+            case R.id.cancel_save:
+                if (saveTask != null) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setCancelable(true);
+                    builder.setTitle("Cancel Save");
+                    builder.setMessage("Are you sure you want to stop saving this file?");
+                    builder.setNegativeButton("no", null);
+                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            if (saveTask != null && !saveTask.isCancelled())
+                                saveTask.cancel(false);
+                        }
+                    });
+                    builder.create().show();
+                } else {
+                    progressBar.setVisibility(View.GONE);
+                    mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
+                    mOptionsMenu.findItem(R.id.cancel_save).setVisible(false);
+                    mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
+                    //mOptionsMenu.findItem(R.id.action_preload).setVisible(true);
+                }
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -375,6 +410,10 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }
 
     public void scanBarcode(String barcode) {
+        if (saveTask != null) {
+            Toast.makeText(this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
+            return;
+        }
         //noinspection SqlResolve
         Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.BARCODE + " = ?;", new String[] {String.valueOf(barcode)});
 
@@ -398,6 +437,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }
 
     public void addBarcodeItem(@NonNull String barcode) {
+        if (saveTask != null) return;
         if (lastLocationId == -1) {
             Toast.makeText(this, "A location has not been scanned", Toast.LENGTH_SHORT).show();
             return;
@@ -430,6 +470,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }
 
     public void removeBarcodeItem(SimpleViewHolder holder) {
+        if (saveTask != null) return;
         //System.out.println("remove item " + index);
         if (db.delete(ItemTable.NAME, InventoryDatabase.ID + " = ?;", new String[] {String.valueOf(holder.getId())}) > 0) {
             //Log.v(TAG, "Removed item \"" + holder.getItemBarcode() + "\" from the inventory");
@@ -459,6 +500,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }
 
     public void addBarcodeContainer(@NonNull String barcode) {
+        if (saveTask != null) return;
         if (lastLocationId == -1) {
             Toast.makeText(this, "A location has not been scanned", Toast.LENGTH_SHORT).show();
             return;
@@ -467,7 +509,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         ContentValues newContainer = new ContentValues();
         newContainer.put(InventoryDatabase.BARCODE, barcode);
         newContainer.put(InventoryDatabase.LOCATION_ID, lastLocationId);
-        newContainer.put(InventoryDatabase.DATE_TIME, (String) formatDate(System.currentTimeMillis()));
+        newContainer.put(InventoryDatabase.DATE_TIME, String.valueOf(formatDate(System.currentTimeMillis())));
 
         if (db.insert(ItemTable.NAME, null, newContainer) == -1) {
             Log.e(TAG, "Error adding container \"" + barcode + "\" to the inventory");
@@ -491,6 +533,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }
 
     public void removeBarcodeContainer(SimpleViewHolder holder) {
+        if (saveTask != null) return;
         if (db.delete(ItemTable.NAME, InventoryDatabase.ID + " = " + holder.getId(), null) > 0) {
             //Log.v(TAG, "Removed container \"" + holder.getItemBarcode() + "\" from the inventory");
 
@@ -519,6 +562,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }
 
     public void addBarcodeLocation(String barcode) {
+        if (saveTask != null) return;
         ContentValues newLocation = new ContentValues();
         newLocation.put(InventoryDatabase.BARCODE, barcode);
         newLocation.put(InventoryDatabase.DATE_TIME, (String) formatDate(System.currentTimeMillis()));
@@ -714,6 +758,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 String tempText;
 
                 while (!itemCursor.isAfterLast()) {
+                    if (isCancelled())
+                        return "Save canceled";
                     publishProgress((itemIndex * 100) / totalItemCount);
                     tempLocation = itemCursor.getLong(itemCursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
 
@@ -751,9 +797,13 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                 BufferedReader br = new BufferedReader(new FileReader(TEMP_OUTPUT_FILE));
                 String line;
+                itemIndex = 0;
                 lineIndex = 0;
 
                 while (!itemCursor.isAfterLast()) {
+                    if (isCancelled())
+                        return "Save canceled";
+                    publishProgress((itemIndex * 100) / totalItemCount);
                     line = br.readLine();
                     tempLocation = itemCursor.getLong(itemCursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
 
@@ -793,6 +843,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                     itemCursor.moveToNext();
                     lineIndex++;
+                    itemIndex++;
                 }
 
                 lineIndex = -1;
@@ -849,8 +900,29 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         protected void onPostExecute(String result) {
             Toast.makeText(InventoryActivity.this, result, Toast.LENGTH_SHORT).show();
             progressBar.setVisibility(View.GONE);
+            mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
+            mOptionsMenu.findItem(R.id.cancel_save).setVisible(false);
+            mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
+            //mOptionsMenu.findItem(R.id.action_preload).setVisible(true);
             MediaScannerConnection.scanFile(InventoryActivity.this, new String[]{OUTPUT_FILE.getAbsolutePath()}, null, null);
             saveTask = null;
+        }
+
+        @Override
+        protected void onCancelled(String s) {
+            onCancelled();
+        }
+
+        @Override
+        protected void onCancelled() {
+            Toast.makeText(InventoryActivity.this, "Save cancelled", Toast.LENGTH_SHORT).show();
+            progressBar.setVisibility(View.GONE);
+            mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
+            mOptionsMenu.findItem(R.id.cancel_save).setVisible(false);
+            mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
+            //mOptionsMenu.findItem(R.id.action_preload).setVisible(true);
+            saveTask = null;
+            super.onCancelled();
         }
     }
 
@@ -862,18 +934,15 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 try {
                     iScanner.aDecodeGetResult(mDecodeResult);
                     String barcode = mDecodeResult.decodeValue;
-                    if (barcode.length() >= 4) {
-                        if (barcode.equals(">><<")) {
-                            Toast.makeText(InventoryActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
-                            return;
-                        } else if ((barcode.startsWith(">>")) && (barcode.endsWith("<<"))) {
-                            barcode = barcode.substring(2, barcode.length() - 2);
-                            if (barcode.equals("SCAN AGAIN")) return;
-                            scanBarcode(barcode);
-                        } else {
-                            Toast.makeText(InventoryActivity.this, "Malformed barcode: ", Toast.LENGTH_SHORT).show();
-                        }
-                    } else return;
+                    if (barcode.equals(">><<")) {
+                        Toast.makeText(InventoryActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
+                    } else if ((barcode.startsWith(">>")) && (barcode.endsWith("<<"))) {
+                        barcode = barcode.substring(2, barcode.length() - 2);
+                        if (barcode.equals("SCAN AGAIN")) return;
+                        scanBarcode(barcode);
+                    } else if (!barcode.equals("SCAN AGAIN")){
+                        Toast.makeText(InventoryActivity.this, "Malformed barcode: " + barcode, Toast.LENGTH_SHORT).show();
+                    }
                     //System.out.println("symName: " + mDecodeResult.symName);
                     //System.out.println("decodeValue: " + mDecodeResult.decodeValue);
                 } catch (RemoteException e) {

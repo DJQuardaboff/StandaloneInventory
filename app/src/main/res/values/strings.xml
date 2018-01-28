@@ -13,4 +13,5 @@
     <string name="current_location_title_string">Current location:</string>
     <string name="total_items_title_string">Items:</string>
     <string name="total_containers_title_string">Containers:</string>
+    <string name="cancel_save">Cancel save</string>
 </resources>
