@@ -26,29 +26,29 @@
             android:visibility="gone"/-->
 
         <TextView
-            android:id="@+id/item_location"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp"
-            android:layout_weight=".7"
-            android:gravity="center_vertical"
-            android:textSize="15sp" />
-        <View
-            android:id="@+id/item_divider"
-            android:layout_width="1dp"
-            android:layout_height="match_parent"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp"
-            android:background="#afafaf" />
-
-        <TextView
             android:id="@+id/item_barcode"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight=".5"
+            android:gravity="center"
+            android:textSize="15sp" />
+        <View
+            android:id="@+id/item_divider"
+            android:layout_width="2dp"
+            android:layout_height="match_parent"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
+            android:background="#DFDFDF" />
+
+        <TextView
+            android:id="@+id/item_location"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:layout_marginEnd="4dp"
             android:layout_marginStart="4dp"
-            android:layout_weight=".5"
+            android:layout_weight=".8"
             android:gravity="center"
             android:textSize="12sp" />
 

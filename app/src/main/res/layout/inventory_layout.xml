@@ -14,17 +14,29 @@
         android:id="@+id/info_layout"
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
-        android:background="#10303F9F">
+        android:background="#EFEFEF">
+
+        <me.zhanghai.android.materialprogressbar.MaterialProgressBar
+            android:id="@+id/progress_saving"
+            style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:mpb_useIntrinsicPadding="false"
+            app:mpb_progressStyle="horizontal" />
 
         <TextView
             android:id="@+id/current_location_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/current_location_title_string"
+            android:layout_marginTop="4dp"
             android:paddingStart="8dp"
             android:paddingLeft="8dp"
             android:paddingEnd="8dp"
             android:paddingRight="8dp"
+            android:textSize="15sp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
 
@@ -32,6 +44,7 @@
             android:id="@+id/current_location"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textSize="15sp"
             app:layout_constraintBaseline_toBaselineOf="@+id/current_location_title"
             app:layout_constraintStart_toEndOf="@+id/current_location_title" />
 
@@ -44,6 +57,7 @@
             android:paddingLeft="8dp"
             android:paddingEnd="8dp"
             android:paddingRight="8dp"
+            android:textSize="15sp"
             app:layout_constraintTop_toBottomOf="@id/current_location_title"
             app:layout_constraintStart_toStartOf="parent"/>
 
@@ -51,6 +65,7 @@
             android:id="@+id/last_scan"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textSize="15sp"
             app:layout_constraintBaseline_toBaselineOf="@+id/last_scan_title"
             app:layout_constraintStart_toEndOf="@+id/last_scan_title" />
 
@@ -63,6 +78,7 @@
             android:paddingLeft="8dp"
             android:paddingEnd="8dp"
             android:paddingRight="8dp"
+            android:textSize="15sp"
             app:layout_constraintTop_toBottomOf="@id/last_scan_title"
             app:layout_constraintStart_toStartOf="parent"/>
 
@@ -70,6 +86,7 @@
             android:id="@+id/total_items"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textSize="15sp"
             app:layout_constraintBaseline_toBaselineOf="@+id/total_items_title"
             app:layout_constraintStart_toEndOf="@+id/total_items_title" />
 
@@ -82,6 +99,7 @@
             android:paddingLeft="8dp"
             android:paddingEnd="8dp"
             android:paddingRight="8dp"
+            android:textSize="15sp"
             app:layout_constraintTop_toBottomOf="@id/total_items_title"
             app:layout_constraintStart_toStartOf="parent"/>
 
@@ -89,6 +107,7 @@
             android:id="@+id/total_containers"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textSize="15sp"
             app:layout_constraintBaseline_toBaselineOf="@+id/total_containers_title"
             app:layout_constraintStart_toEndOf="@+id/total_containers_title" />
 
@@ -111,6 +130,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Random Scan"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="@id/item_list_view"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>

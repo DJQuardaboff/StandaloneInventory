@@ -11,7 +11,7 @@ public class InventoryDatabase {
 
     public class ItemTable {
         public static final String NAME = "items";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + BARCODE + " TEXT, " + LOCATION_ID + " INTEGER, " + DESCRIPTION + " TEXT, " + DATE_TIME + " BIGINT );";
+        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + BARCODE + " TEXT, " + LOCATION_ID + " INTEGER, " + DESCRIPTION + " TEXT, " + DATE_TIME + " TEXT );";
         public class Keys {
             public static final String ID = NAME + '.' + InventoryDatabase.ID;
             public static final String BARCODE = NAME + '.' + InventoryDatabase.BARCODE;
@@ -23,7 +23,7 @@ public class InventoryDatabase {
 
     public class LocationTable {
         public static final String NAME = "locations";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + BARCODE + " TEXT, " + DESCRIPTION + " TEXT, " + DATE_TIME + " BIGINT );";
+        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + BARCODE + " TEXT, " + DESCRIPTION + " TEXT, " + DATE_TIME + " TEXT );";
         public class Keys {
             public static final String ID = NAME + '.' + InventoryDatabase.ID;
             public static final String BARCODE = NAME + '.' + InventoryDatabase.BARCODE;
@@ -34,7 +34,7 @@ public class InventoryDatabase {
 
     public class PicturesTable {
         public static final String NAME = "pictures";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PICTURE + " BLOB, "+ DESCRIPTION + " TEXT, " + DATE_TIME + " BIGINT );";
+        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PICTURE + " BLOB, "+ DESCRIPTION + " TEXT, " + DATE_TIME + " TEXT );";
         public class Keys {
             public static final String ID = NAME + '.' + InventoryDatabase.ID;
             public static final String PICTURE = NAME + '.' + InventoryDatabase.PICTURE;
