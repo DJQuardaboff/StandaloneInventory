@@ -1,6 +1,6 @@
 package com.porterlee.mobileinventory;
 
-public class PreloadDatabase {
+public class PreloadLocationsDatabase {
     public static final String FILE_NAME = "inventory.db";
     public static final String ID = "id";
     public static final String PICTURE = "picture";

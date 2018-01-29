@@ -1,33 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.porterlee.mobileinventory">
 
     <permission
         android:name="com.porterlee.mobileinventory.permission.SCANNER_RESULT_RECEIVER"
-        android:protectionLevel="normal" />
+        android:protectionLevel="normal"/>
 
-    <uses-permission android:name="com.porterlee.mobileinventory.SCANNER_RESULT_RECEIVER" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.BROADCAST_STICKY" />
+    <uses-sdk
+        android:minSdkVersion="17"
+        android:targetSdkVersion="17"
+        android:maxSdkVersion="17" />
+
+    <uses-permission android:name="com.porterlee.mobileinventory.SCANNER_RESULT_RECEIVER"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.BROADCAST_STICKY"/>
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true" >
+        android:supportsRtl="true">
 
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/MainTheme"
-            android:windowSoftInputMode="stateAlwaysHidden" >
+            android:windowSoftInputMode="stateAlwaysHidden">
 
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
@@ -36,11 +42,11 @@
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/InventoryTheme"
-            android:windowSoftInputMode="stateAlwaysHidden" >
+            android:windowSoftInputMode="stateAlwaysHidden">
 
             <intent-filter>
-                <action android:name="com.porterlee.mobileinventory.INVENTORY" />
-                <category android:name="android.intent.category.DEFAULT" />
+                <action android:name="com.porterlee.mobileinventory.INVENTORY"/>
+                <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
 
@@ -49,11 +55,11 @@
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/PreloadTheme"
-            android:windowSoftInputMode="stateAlwaysHidden" >
+            android:windowSoftInputMode="stateAlwaysHidden">
 
             <intent-filter>
-                <action android:name="com.porterlee.mobileinventory.PRELOAD_LOCATIONS" />
-                <category android:name="android.intent.category.ALTERNATIVE" />
+                <action android:name="com.porterlee.mobileinventory.PRELOAD_LOCATIONS"/>
+                <category android:name="android.intent.category.ALTERNATIVE"/>
             </intent-filter>
         </activity>
 
@@ -62,11 +68,11 @@
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/PreloadTheme"
-            android:windowSoftInputMode="stateAlwaysHidden" >
+            android:windowSoftInputMode="stateAlwaysHidden">
 
             <intent-filter>
-                <action android:name="com.porterlee.mobileinventory.PRELOAD_INVENTORY" />
-                <category android:name="android.intent.category.ALTERNATIVE" />
+                <action android:name="com.porterlee.mobileinventory.PRELOAD_INVENTORY"/>
+                <category android:name="android.intent.category.ALTERNATIVE"/>
             </intent-filter>
         </activity>
     </application>

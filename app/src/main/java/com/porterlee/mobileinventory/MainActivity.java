@@ -1,6 +1,5 @@
 package com.porterlee.mobileinventory;
 
-import android.Manifest;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -12,6 +11,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -21,9 +21,10 @@ import device.scanner.IScannerService;
 
 
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    private Dialog dialog;
-    private static final String[] requiredPermissions = new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE};
+    private static final String[] requiredPermissions = new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.SCANNER_RESULT_RECEIVER, android.Manifest.permission.BROADCAST_STICKY};
     private static final String TAG = MainActivity.class.getSimpleName();
+    private AlertDialog dialog;
+    boolean hasPermission;
     static IScannerService iScanner = null;
     static DecodeResult mDecodeResult = new DecodeResult();
 
@@ -31,17 +32,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            ArrayList<String> permissionsToGrant = new ArrayList<>();
-            for (String requiredPermission : requiredPermissions) {
-                if (checkSelfPermission(requiredPermission) != PackageManager.PERMISSION_GRANTED)
-                    permissionsToGrant.add(requiredPermission);
-            }
-            ActivityCompat.requestPermissions(this, (String[]) permissionsToGrant.toArray(), 0);
-        }
-
         /*if (true) {
-            startActivity(new Intent(MainActivity.this, InventoryActivity.class));
+            startActivity(new Intent(MainActivity.this, PreloadLocationsActivity.class));
             finish();
             return;
         }*/
@@ -56,10 +48,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Log.d(TAG, "Preload");
-                Toast.makeText(MainActivity.this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
-                //startActivity(new Intent(MainActivity.this, PreloadLocationsActivity.class));
-                startActivity(new Intent(MainActivity.this, MainActivity.class));
-                finish();
+                startActivity(new Intent(MainActivity.this, PreloadLocationsActivity.class));
             }
         });
         builder.setPositiveButton("Standard Inventory", new DialogInterface.OnClickListener() {
@@ -72,17 +61,66 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         dialog = builder.create();
     }
 
+    private boolean askForPermission() {
+        boolean hasPermissions = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ArrayList<String> permissionsToGrant = new ArrayList<>();
+            for (String requiredPermission : requiredPermissions) {
+                if (checkSelfPermission(requiredPermission) != PackageManager.PERMISSION_GRANTED) {
+                    permissionsToGrant.add(requiredPermission);
+                    hasPermissions = false;
+                }
+            }
+
+            Object[] permissionStringsAsObjects = permissionsToGrant.toArray();
+            String[] permissionStrings = new String[permissionStringsAsObjects.length];
+
+            for (int i = 0; i < permissionStrings.length; i++)
+                permissionStrings[i] = (String) permissionStringsAsObjects[i];
+
+            ActivityCompat.requestPermissions(this, permissionStrings, 0);
+        }
+        return hasPermissions;
+    }
+
+    private void askForMode() {
+        if (!dialog.isShowing()) dialog.show();
+        final AlertDialog d = dialog;
+
+        if(d != null) {
+            d.getButton(Dialog.BUTTON_NEGATIVE).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Log.d(TAG, "Preload");
+                    Toast.makeText(MainActivity.this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (permissions.length == 0 || grantResults.length == 0)
-            return;
+        boolean havePermissions = true;
+        if (permissions.length != 0 && grantResults.length != 0) {
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED)
+                    havePermissions = false;
+                System.out.print(result == PackageManager.PERMISSION_GRANTED);
+            }
+        }
+
+        //if (!havePermissions)
+            //askForPermission();
+        //else
+            askForMode();
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        if (!dialog.isShowing()) dialog.show();
+        askForPermission();
+        askForMode();
     }
 }
 

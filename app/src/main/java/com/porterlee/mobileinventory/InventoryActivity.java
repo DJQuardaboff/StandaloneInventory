@@ -77,7 +77,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private static SQLiteStatement LAST_ITEM_BARCODE_STATEMENT;
     private static SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
     private static SQLiteStatement LAST_LOCATION_ID_STATEMENT;
-    //private int[] autosizeInventoryItemTextSizes;
+    private int[] autosizeInventoryItemTextSizes;
     private int[] autosizeInventoryLocationTextSizes;
     private int errorColor = Color.RED;
     private MaterialProgressBar progressBar;
@@ -108,7 +108,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         }
 
         Resources resources = getResources();
-        //autosizeInventoryItemTextSizes = resources.getIntArray(R.array.autosize_inventory_item_text_sizes);
+        autosizeInventoryItemTextSizes = resources.getIntArray(R.array.autosize_inventory_item_text_sizes);
         autosizeInventoryLocationTextSizes = resources.getIntArray(R.array.autosize_inventory_location_text_sizes);
 
         //noinspection ResultOfMethodCallIgnored
@@ -521,7 +521,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
             if (holder.getAdapterPosition() == 0) {
                 lastItemBarcode = getLastItemBarcode();
-                updateInfo();
             }
 
             itemRecyclerAdapter.notifyItemRemoved(holder.getAdapterPosition());
@@ -540,6 +539,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             Log.e(TAG, "Error removing item " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory");
             Toast.makeText(InventoryActivity.this, "Error removing item " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory", Toast.LENGTH_SHORT).show();
         }
+
+        updateInfo();
     }
 
     public void addBarcodeContainer(@NonNull String barcode, @NonNull String tags) {
@@ -585,7 +586,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
             if (holder.getAdapterPosition() == 0) {
                 lastItemBarcode = getLastItemBarcode();
-                updateInfo();
             }
 
             itemRecyclerAdapter.notifyItemRemoved(holder.getAdapterPosition());
@@ -603,6 +603,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             Log.e(TAG, "Error removing container " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory");
             Toast.makeText(InventoryActivity.this, "Error removing container " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory", Toast.LENGTH_SHORT).show();
         }
+
+        updateInfo();
     }
 
     public void addBarcodeLocation(@NonNull String barcode, String tags) {
@@ -710,7 +712,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     class InventoryItemViewHolder extends RecyclerView.ViewHolder {
         private MaterialProgressBar progressBarWaiting;
         private TextView itemBarcodeTextView;
-        private ColorStateList itemBarcodeTextViewDfeaultColor;
+        private ColorStateList itemBarcodeTextViewDefaultColor;
         private TextView itemLocationTextView;
         private View itemDividerView;
         private ImageButton expandedMenuButton;
@@ -726,7 +728,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             super(itemView);
             //progressBarWaiting = itemView.findViewById(R.id.progressbar_waiting);
             itemBarcodeTextView = itemView.findViewById(R.id.barcode_text_view);
-            itemBarcodeTextViewDfeaultColor = itemBarcodeTextView.getTextColors();
+            TextViewCompat.setAutoSizeTextTypeUniformWithPresetSizes(itemBarcodeTextView, autosizeInventoryItemTextSizes, TypedValue.COMPLEX_UNIT_SP);
+            itemBarcodeTextViewDefaultColor = itemBarcodeTextView.getTextColors();
             itemLocationTextView = itemView.findViewById(R.id.location_text_view);
             TextViewCompat.setAutoSizeTextTypeUniformWithPresetSizes(itemLocationTextView, autosizeInventoryLocationTextSizes, TypedValue.COMPLEX_UNIT_SP);
             itemDividerView = itemView.findViewById(R.id.divider_view);
@@ -788,13 +791,10 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 itemBarcodeTextView.setText(itemBarcode);
                 itemBarcodeTextView.setVisibility(View.VISIBLE);
 
-                if (itemTags.contains(DUPLICATE_BARCODE_TAG)) {
-                    Log.d(TAG, String.valueOf(Color.RED));//ColorStateList.valueOf(0xFFBF0000)));
+                if (itemTags.contains(DUPLICATE_BARCODE_TAG))
                     itemBarcodeTextView.setTextColor(errorColor);
-                } else {
-                    //Log.d(TAG, String.valueOf(itemBarcodeTextViewDfeaultColor));
-                    itemBarcodeTextView.setTextColor(itemBarcodeTextViewDfeaultColor);
-                }
+                else
+                    itemBarcodeTextView.setTextColor(itemBarcodeTextViewDefaultColor);
 
                 itemDividerView.setVisibility(View.VISIBLE);
 

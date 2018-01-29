@@ -41,19 +41,6 @@ public class PreloadInventoryActivity extends AppCompatActivity {
         }
     }
 
-    class PreloadLocationViewHolder extends RecyclerView.ViewHolder {
-        //todo finish
-
-        PreloadLocationViewHolder(final View itemView) {
-            super(itemView);
-            //todo finish
-        }
-
-        void bindViews(Cursor cursor) {
-            //todo finish
-        }
-    }
-
     class PreloadItemViewHolder extends RecyclerView.ViewHolder {
         //todo finish
 
