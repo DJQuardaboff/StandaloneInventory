@@ -311,8 +311,9 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 }
                 return true;
             case R.id.action_preload:
-                startActivity(new Intent(this, PreloadActivity.class));
-                finish();
+                //startActivity(new Intent(this, PreloadActivity.class));8
+                //finish();
+                Toast.makeText(this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
                 return true;
             case R.id.cancel_save:
                 if (saveTask != null) {
@@ -334,7 +335,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
                     mOptionsMenu.findItem(R.id.cancel_save).setVisible(false);
                     mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
-                    //mOptionsMenu.findItem(R.id.action_preload).setVisible(true);
+                    mOptionsMenu.findItem(R.id.action_preload).setVisible(true);
                 }
                 return true;
             default:
@@ -394,17 +395,13 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     public void randomScan() {
         Random r = new Random();
         int temp = r.nextInt(10);
-        String barcode = "V";
-        if (lastLocationId != -1)
-            barcode = temp < 2 ? "V" : (temp < 3 ? "m1" : (temp < 4 ? "M" : (temp < 7 ? "e1" : "E"))) ;
+        String barcode = (lastLocationId != -1 | temp < 2) ? "V" : (temp < 3 ? "m1" : (temp < 4 ? "M" : (temp < 7 ? "e1" : "E")));
+
+        for (int i = r.nextInt(7) + 7; i > 0; i--)
+            barcode = barcode.concat(String.valueOf(alphaNumeric.charAt(r.nextInt(alphaNumeric.length()))).toUpperCase());
 
         if (isLocation(barcode))
-            for (int i = r.nextInt(5) + 5; i > 0; i--)
-                barcode = barcode.concat(String.valueOf(alphaNumeric.charAt(r.nextInt(alphaNumeric.length()))).toUpperCase());
-
-        if (isItem(barcode) || isContainer(barcode))
-            for (int i = r.nextInt(5) + 5; i > 0; i--)
-                barcode = barcode.concat(String.valueOf(alphaNumeric.charAt(r.nextInt(alphaNumeric.length()))));
+            barcode = barcode.toUpperCase();
 
         scanBarcode(barcode);
     }
@@ -446,7 +443,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         ContentValues newItem = new ContentValues();
         newItem.put(InventoryDatabase.BARCODE, barcode);
         newItem.put(InventoryDatabase.LOCATION_ID, lastLocationId);
-        newItem.put(InventoryDatabase.DATE_TIME, (String) formatDate(System.currentTimeMillis()));
+        newItem.put(InventoryDatabase.DATE_TIME, String.valueOf(formatDate(System.currentTimeMillis())));
 
         if (db.insert(ItemTable.NAME, null, newItem) == -1) {
             Log.e(TAG, "Error adding item \"" + barcode + "\" to the inventory");
@@ -565,7 +562,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         if (saveTask != null) return;
         ContentValues newLocation = new ContentValues();
         newLocation.put(InventoryDatabase.BARCODE, barcode);
-        newLocation.put(InventoryDatabase.DATE_TIME, (String) formatDate(System.currentTimeMillis()));
+        newLocation.put(InventoryDatabase.DATE_TIME, String.valueOf(formatDate(System.currentTimeMillis())));
 
         long rowID = db.insert(LocationTable.NAME, null, newLocation);
 
