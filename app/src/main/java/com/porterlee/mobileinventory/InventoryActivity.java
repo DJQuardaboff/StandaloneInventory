@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDoneException;
@@ -20,6 +21,7 @@ import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.widget.TextViewCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -28,6 +30,7 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -67,6 +70,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
     private static final String TAG = InventoryActivity.class.getSimpleName();
     private static final int maxItemHistoryIncrease = 25;
+    //private int[] autosizeInventoryItemTextSizes;
+    private int[] autosizeInventoryLocationTextSizes;
     private static SQLiteStatement LAST_ITEM_BARCODE_STATEMENT;
     private static SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
     private static SQLiteStatement LAST_LOCATION_ID_STATEMENT;
@@ -90,11 +95,16 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.inventory_layout);
+
         try {
             initScanner();
         } catch (RemoteException e) {
             e.printStackTrace();
         }
+
+        Resources resources = getResources();
+        //autosizeInventoryItemTextSizes = resources.getIntArray(R.array.autosize_inventory_item_text_sizes);
+        autosizeInventoryLocationTextSizes = resources.getIntArray(R.array.autosize_inventory_location_text_sizes);
 
         //noinspection ResultOfMethodCallIgnored
         new File(getFilesDir() + "/" + DATABASE_DIRECTORY).mkdirs();
@@ -158,13 +168,28 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                         popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                             @Override
                             public boolean onMenuItemClick(MenuItem menuItem) {
-                                Log.d(TAG, "Removing " + (isItem(simpleViewHolder.getItemBarcode()) ? "item" : "container") + " at position " + simpleViewHolder.getAdapterPosition() + " with barcode " + simpleViewHolder.getItemBarcode());
+                                if (saveTask != null) {
+                                    Toast.makeText(InventoryActivity.this, "Cannot edit inventory while saving", Toast.LENGTH_SHORT).show();
+                                    return true;
+                                }
+                                AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
+                                builder.setCancelable(true);
+                                builder.setTitle("Remove " + (isItem(simpleViewHolder.getItemBarcode()) ? "Item" : "Container"));
+                                builder.setMessage("Are you sure you want to remove this " + (isItem(simpleViewHolder.getItemBarcode()) ? "item" : "container") + "?");
+                                builder.setNegativeButton("no", null);
+                                builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        Log.d(TAG, "Removing " + (isItem(simpleViewHolder.getItemBarcode()) ? "item" : "container") + " at position " + simpleViewHolder.getAdapterPosition() + " with barcode " + simpleViewHolder.getItemBarcode());
 
-                                if (isContainer(simpleViewHolder.getItemBarcode()))
-                                    removeBarcodeContainer(simpleViewHolder);
+                                        if (isContainer(simpleViewHolder.getItemBarcode()))
+                                            removeBarcodeContainer(simpleViewHolder);
 
-                                if (isItem(simpleViewHolder.getItemBarcode()))
-                                    removeBarcodeItem(simpleViewHolder);
+                                        if (isItem(simpleViewHolder.getItemBarcode()))
+                                            removeBarcodeItem(simpleViewHolder);
+                                    }
+                                });
+                                builder.create().show();
 
                                 return true;
                             }
@@ -297,17 +322,14 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     }
                 }
 
-                progressBar.setProgress(0);
-                progressBar.setVisibility(View.VISIBLE);
-                mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(false);
-                mOptionsMenu.findItem(R.id.cancel_save).setVisible(true);
-                mOptionsMenu.findItem(R.id.action_remove_all).setVisible(false);
-                mOptionsMenu.findItem(R.id.action_preload).setVisible(false);
-                onPrepareOptionsMenu(mOptionsMenu);
 
                 if (saveTask == null) {
+                    preSave();
                     saveTask = new SaveToFileTask();
                     saveTask.execute();
+                } else {
+                    saveTask.cancel(false);
+                    postSave();
                 }
                 return true;
             case R.id.action_preload:
@@ -331,11 +353,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     });
                     builder.create().show();
                 } else {
-                    progressBar.setVisibility(View.GONE);
-                    mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
-                    mOptionsMenu.findItem(R.id.cancel_save).setVisible(false);
-                    mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
-                    mOptionsMenu.findItem(R.id.action_preload).setVisible(true);
+                    postSave();
                 }
                 return true;
             default:
@@ -390,12 +408,33 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         ((TextView) findViewById(R.id.total_containers)).setText(String.valueOf(containerCount));
     }
 
+    public void preSave() {
+        progressBar.setProgress(0);
+        //progressBar.setVisibility(View.VISIBLE);
+        mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(false);
+        mOptionsMenu.findItem(R.id.cancel_save).setVisible(true);
+        mOptionsMenu.findItem(R.id.action_remove_all).setVisible(false);
+        mOptionsMenu.findItem(R.id.action_preload).setVisible(false);
+        onPrepareOptionsMenu(mOptionsMenu);
+    }
+
+    public void postSave() {
+        saveTask = null;
+        //progressBar.setVisibility(View.GONE);
+        progressBar.setProgress(0);
+        mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
+        mOptionsMenu.findItem(R.id.cancel_save).setVisible(false);
+        mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
+        mOptionsMenu.findItem(R.id.action_preload).setVisible(true);
+        onPrepareOptionsMenu(mOptionsMenu);
+    }
+
     private static final String alphaNumeric = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
     public void randomScan() {
         Random r = new Random();
         int temp = r.nextInt(10);
-        String barcode = (lastLocationId != -1 | temp < 2) ? "V" : (temp < 3 ? "m1" : (temp < 4 ? "M" : (temp < 7 ? "e1" : "E")));
+        String barcode = (lastLocationId == -1 | temp < 2) ? "V" : (temp < 3 ? "m1" : (temp < 4 ? "M" : (temp < 7 ? "e1" : "E")));
 
         for (int i = r.nextInt(7) + 7; i > 0; i--)
             barcode = barcode.concat(String.valueOf(alphaNumeric.charAt(r.nextInt(alphaNumeric.length()))).toUpperCase());
@@ -660,7 +699,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }*/
 
     class SimpleViewHolder extends RecyclerView.ViewHolder {
-        //private ProgressBar progressLoading;
+        private MaterialProgressBar progressBarWaiting;
         private TextView itemBarcodeTextView;
         private TextView itemLocationTextView;
         private View itemDividerView;
@@ -673,15 +712,36 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
         SimpleViewHolder(final View itemView) {
             super(itemView);
-            //progressLoading = itemView.findViewById(R.id.progress_loading);
-            itemBarcodeTextView = itemView.findViewById(R.id.item_barcode);
-            itemLocationTextView = itemView.findViewById(R.id.item_location);
-            itemDividerView = itemView.findViewById(R.id.item_divider);
+            progressBarWaiting = itemView.findViewById(R.id.progressbar_waiting);
+            itemBarcodeTextView = itemView.findViewById(R.id.barcode_text_view);
+            itemLocationTextView = itemView.findViewById(R.id.location_text_view);
+            TextViewCompat.setAutoSizeTextTypeUniformWithPresetSizes(itemLocationTextView, autosizeInventoryLocationTextSizes, TypedValue.COMPLEX_UNIT_SP);
+            itemDividerView = itemView.findViewById(R.id.divider_view);
             expandedMenuButton = itemView.findViewById(R.id.menu_button);
         }
 
         long getId() {
             return id;
+        }
+
+        public MaterialProgressBar getProgressBarWaiting() {
+            return progressBarWaiting;
+        }
+
+        public TextView getItemBarcodeTextView() {
+            return itemBarcodeTextView;
+        }
+
+        public TextView getItemLocationTextView() {
+            return itemLocationTextView;
+        }
+
+        public View getItemDividerView() {
+            return itemDividerView;
+        }
+
+        public ImageButton getExpandedMenuButton() {
+            return expandedMenuButton;
         }
 
         String getItemBarcode() {
@@ -700,35 +760,31 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             return locationDescription;
         }
 
-        void bindViews(long id, String itemBarcode, String itemDescription, String locationBarcode, String locationDescription) {
+        void bindViews(long id, @NonNull String itemBarcode, String itemDescription, @NonNull String locationBarcode, String locationDescription) {
             this.id = id;
             this.itemBarcode = itemBarcode;
             this.locationBarcode = locationBarcode;
             this.itemDescription = itemDescription;
             this.locationDescription = locationDescription;
-            //if (ready) {
+
+            {//if (ready) {
                 //progressLoading.setVisibility(View.GONE);
-                if (itemBarcode != null) {
-                    itemBarcodeTextView.setText(itemBarcode);
-                    itemBarcodeTextView.setVisibility(View.VISIBLE);
-                } else {
-                    itemBarcodeTextView.setVisibility(View.GONE);
-                    itemDividerView.setVisibility(View.GONE);
-                }
-                if (locationBarcode != null) {
-                    itemLocationTextView.setText(locationBarcode);
-                    itemLocationTextView.setVisibility(View.VISIBLE);
-                } else {
-                    itemLocationTextView.setVisibility(View.GONE);
-                    itemDividerView.setVisibility(View.GONE);
-                }
+
+                itemBarcodeTextView.setText(itemBarcode);
+                itemBarcodeTextView.setVisibility(View.VISIBLE);
+
+                itemDividerView.setVisibility(View.VISIBLE);
+
+                itemLocationTextView.setText(locationBarcode);
+                itemLocationTextView.setVisibility(View.VISIBLE);
+
                 expandedMenuButton.setVisibility(View.VISIBLE);
             //} else {
                 //progressLoading.setVisibility(View.VISIBLE);
                 //itemBarcodeTextView.setVisibility(View.GONE);
                 //itemLocationTextView.setVisibility(View.GONE);
                 //expandedMenuButton.setVisibility(View.GONE);
-            //}
+            }
         }
     }
 
@@ -896,30 +952,14 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
         protected void onPostExecute(String result) {
             Toast.makeText(InventoryActivity.this, result, Toast.LENGTH_SHORT).show();
-            progressBar.setVisibility(View.GONE);
-            mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
-            mOptionsMenu.findItem(R.id.cancel_save).setVisible(false);
-            mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
-            //mOptionsMenu.findItem(R.id.action_preload).setVisible(true);
+            postSave();
             MediaScannerConnection.scanFile(InventoryActivity.this, new String[]{OUTPUT_FILE.getAbsolutePath()}, null, null);
-            saveTask = null;
         }
 
         @Override
         protected void onCancelled(String s) {
-            onCancelled();
-        }
-
-        @Override
-        protected void onCancelled() {
-            Toast.makeText(InventoryActivity.this, "Save cancelled", Toast.LENGTH_SHORT).show();
-            progressBar.setVisibility(View.GONE);
-            mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
-            mOptionsMenu.findItem(R.id.cancel_save).setVisible(false);
-            mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
-            //mOptionsMenu.findItem(R.id.action_preload).setVisible(true);
-            saveTask = null;
-            super.onCancelled();
+            Toast.makeText(InventoryActivity.this, s, Toast.LENGTH_SHORT).show();
+            postSave();
         }
     }
 

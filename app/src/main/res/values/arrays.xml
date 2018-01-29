@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <array name="autosize_inventory_location_text_sizes">
+        <item>10</item>
+        <item>11</item>
+        <item>12</item>
+    </array>
+</resources>

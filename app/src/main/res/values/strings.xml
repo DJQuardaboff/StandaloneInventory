@@ -14,4 +14,6 @@
     <string name="total_items_title_string">Items:</string>
     <string name="total_containers_title_string">Containers:</string>
     <string name="cancel_save">Cancel save</string>
+    <string name="inventory_barcodes_column_title">Barcode</string>
+    <string name="inventory_location_column_title">Location</string>
 </resources>

@@ -99,9 +99,9 @@ public class PreloadActivity extends AppCompatActivity {
 
         SimpleViewHolder(final View itemView) {
             super(itemView);
-            progressLoading = itemView.findViewById(R.id.progress_loading);
-            itemBarcode = itemView.findViewById(R.id.item_barcode);
-            itemDescription = itemView.findViewById(R.id.item_location);
+            progressLoading = itemView.findViewById(R.id.progressbar_waiting);
+            itemBarcode = itemView.findViewById(R.id.barcode_text_view);
+            itemDescription = itemView.findViewById(R.id.location_text_view);
             expandedMenu = itemView.findViewById(R.id.menu_button);
         }
 
