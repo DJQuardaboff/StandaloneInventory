@@ -11,6 +11,10 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.widget.Toast;
+
+import java.util.ArrayList;
 
 import device.scanner.DecodeResult;
 import device.scanner.IScannerService;
@@ -19,6 +23,7 @@ import device.scanner.IScannerService;
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     private Dialog dialog;
     private static final String[] requiredPermissions = new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE};
+    private static final String TAG = MainActivity.class.getSimpleName();
     static IScannerService iScanner = null;
     static DecodeResult mDecodeResult = new DecodeResult();
 
@@ -27,16 +32,20 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         super.onCreate(savedInstanceState);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, requiredPermissions, 1);
+            ArrayList<String> permissionsToGrant = new ArrayList<>();
+            for (String requiredPermission : requiredPermissions) {
+                if (checkSelfPermission(requiredPermission) != PackageManager.PERMISSION_GRANTED)
+                    permissionsToGrant.add(requiredPermission);
             }
+            ActivityCompat.requestPermissions(this, (String[]) permissionsToGrant.toArray(), 0);
         }
 
-        if (true) {
+        if (false) {
             startActivity(new Intent(MainActivity.this, InventoryActivity.class));
             finish();
             return;
         }
+
         setContentView(R.layout.main_layout);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -46,16 +55,17 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         builder.setNegativeButton("Preload", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                System.out.println("Preload");
-                dialog.dismiss();
-                startActivity(new Intent(MainActivity.this, PreloadActivity.class));
+                Log.d(TAG, "Preload");
+                Toast.makeText(MainActivity.this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
+                //startActivity(new Intent(MainActivity.this, PreloadActivity.class));
+                startActivity(new Intent(MainActivity.this, MainActivity.class));
+                finish();
             }
         });
         builder.setPositiveButton("Standard Inventory", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                System.out.println("Standard Inventory");
-                dialog.dismiss();
+                Log.d(TAG, "Standard Inventory");
                 startActivity(new Intent(MainActivity.this, InventoryActivity.class));
             }
         });
@@ -64,6 +74,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (permissions.length == 0 || grantResults.length == 0)
+            return;
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
