@@ -40,11 +40,11 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             ActivityCompat.requestPermissions(this, (String[]) permissionsToGrant.toArray(), 0);
         }
 
-        if (false) {
+        /*if (true) {
             startActivity(new Intent(MainActivity.this, InventoryActivity.class));
             finish();
             return;
-        }
+        }*/
 
         setContentView(R.layout.main_layout);
 
@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             public void onClick(DialogInterface dialog, int which) {
                 Log.d(TAG, "Preload");
                 Toast.makeText(MainActivity.this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
-                //startActivity(new Intent(MainActivity.this, PreloadActivity.class));
+                //startActivity(new Intent(MainActivity.this, PreloadLocationsActivity.class));
                 startActivity(new Intent(MainActivity.this, MainActivity.class));
                 finish();
             }

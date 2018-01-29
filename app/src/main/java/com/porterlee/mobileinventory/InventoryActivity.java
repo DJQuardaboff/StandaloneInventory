@@ -338,7 +338,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 }
                 return true;
             case R.id.action_preload:
-                //startActivity(new Intent(this, PreloadActivity.class));8
+                //startActivity(new Intent(this, PreloadLocationsActivity.class));
                 //finish();
                 Toast.makeText(this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
                 return true;

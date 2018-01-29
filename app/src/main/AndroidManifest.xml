@@ -45,14 +45,27 @@
         </activity>
 
         <activity
-            android:name=".PreloadActivity"
+            android:name=".PreloadLocationsActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/PreloadTheme"
             android:windowSoftInputMode="stateAlwaysHidden" >
 
             <intent-filter>
-                <action android:name="com.porterlee.mobileinventory.PRELOAD" />
+                <action android:name="com.porterlee.mobileinventory.PRELOAD_LOCATIONS" />
+                <category android:name="android.intent.category.ALTERNATIVE" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".PreloadInventoryActivity"
+            android:configChanges="orientation"
+            android:screenOrientation="portrait"
+            android:theme="@style/PreloadTheme"
+            android:windowSoftInputMode="stateAlwaysHidden" >
+
+            <intent-filter>
+                <action android:name="com.porterlee.mobileinventory.PRELOAD_INVENTORY" />
                 <category android:name="android.intent.category.ALTERNATIVE" />
             </intent-filter>
         </activity>

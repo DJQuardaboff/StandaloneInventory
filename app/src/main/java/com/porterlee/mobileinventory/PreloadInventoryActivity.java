@@ -5,18 +5,20 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 
-public class PreloadActivity extends AppCompatActivity {
+public class PreloadInventoryActivity extends AppCompatActivity {
+    private static final String TAG = PreloadInventoryActivity.class.getSimpleName();
     //todo finish
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.inventory_layout);
+        setContentView(R.layout.preload_inventory_layout);
         //todo finish
     }
 
