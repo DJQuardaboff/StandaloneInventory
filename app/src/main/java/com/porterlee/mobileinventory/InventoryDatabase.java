@@ -2,6 +2,8 @@ package com.porterlee.mobileinventory;
 
 public class InventoryDatabase {
     public static final String FILE_NAME = "inventory.db";
+    public static final String DIRECTORY = "Inventory";
+    public static final String ARCHIVE_DIRECTORY = "Archives";
     public static final String ID = "id";
     public static final String PICTURE = "picture";
     public static final String BARCODE = "barcode";

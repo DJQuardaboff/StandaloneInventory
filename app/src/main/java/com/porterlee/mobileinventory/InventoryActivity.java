@@ -22,7 +22,6 @@ import android.os.Environment;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.widget.TextViewCompat;
 import android.support.v7.app.AlertDialog;
@@ -51,8 +50,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Random;
 
 import com.porterlee.mobileinventory.InventoryDatabase.ItemTable;
@@ -67,8 +64,7 @@ import static com.porterlee.mobileinventory.MainActivity.iScanner;
 import static com.porterlee.mobileinventory.MainActivity.mDecodeResult;
 
 public class InventoryActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    private static final File OUTPUT_FILE = new File(Environment.getExternalStorageDirectory(), "Download/invinfo.txt");
-    private static final String DATABASE_DIRECTORY = "Inventory";
+    private static final File OUTPUT_FILE = new File(Environment.getExternalStorageDirectory(), InventoryDatabase.DIRECTORY + "/data.txt");
     private static final String IS_LIKE_ITEM_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'e1%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'E%\'";
     private static final String IS_LIKE_CONTAINER_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'m1%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'M%\'";
     //private static final String IS_LIKE_LOCATION_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'V%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'L5%\'";
@@ -76,17 +72,21 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     //private static final String IS_LIKE_PROCESS_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'L3%\'";
     private static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
     private static final String TAG = InventoryActivity.class.getSimpleName();
-    private static final int maxItemHistoryIncrease = 25;
-    private static SQLiteStatement LAST_ITEM_BARCODE_STATEMENT;
-    private static SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
-    private static SQLiteStatement LAST_LOCATION_ID_STATEMENT;
+    private static final int MAX_ITEM_HISTORY_INCREASE = 25;
+    private SQLiteStatement LAST_ITEM_BARCODE_STATEMENT;
+    private SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
+    private SQLiteStatement LAST_LOCATION_ID_STATEMENT;
+    private File databaseFile;
+    private File archiveDirectory;
+    private boolean changedSinceLastArchive = false;
+    private Toast savingToast;
     private int[] autosizeInventoryItemTextSizes;
     private int[] autosizeInventoryLocationTextSizes;
     private int errorColor = Color.RED;
     private MaterialProgressBar progressBar;
     private Menu mOptionsMenu;
     private AsyncTask<Void, Integer, String> saveTask;
-    private int maxItemHistory = maxItemHistoryIncrease;
+    private int maxItemHistory = MAX_ITEM_HISTORY_INCREASE;
     private ScanResultReceiver resultReciever;
     private int itemCount = 0;
     private int containerCount = 0;
@@ -114,10 +114,12 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         autosizeInventoryItemTextSizes = resources.getIntArray(R.array.autosize_inventory_item_text_sizes);
         autosizeInventoryLocationTextSizes = resources.getIntArray(R.array.autosize_inventory_location_text_sizes);
 
-        //noinspection ResultOfMethodCallIgnored
-        new File(getFilesDir() + "/" + DATABASE_DIRECTORY).mkdirs();
+        archiveDirectory = new File(getFilesDir() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY);
 
-        db = SQLiteDatabase.openOrCreateDatabase(getFilesDir() + "/" + DATABASE_DIRECTORY + "/" + InventoryDatabase.FILE_NAME, null);
+        databaseFile = new File(getFilesDir() + "/" + InventoryDatabase.DIRECTORY + "/" + InventoryDatabase.FILE_NAME);
+        //noinspection ResultOfMethodCallIgnored
+        databaseFile.mkdirs();
+        db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
 
         //db.execSQL("DROP TABLE IF EXISTS " + ItemTable.NAME);
         //db.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
@@ -183,7 +185,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                                 AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
                                 builder.setCancelable(true);
                                 builder.setTitle("Remove " + (isItem(inventoryItemViewHolder.getItemBarcode()) ? "Item" : "Container"));
-                                builder.setMessage("Are you sure you want to remove this " + (isItem(inventoryItemViewHolder.getItemBarcode()) ? "item" : "container") + "?");
+                                builder.setMessage("Are you sure you want to remove this item?");
                                 builder.setNegativeButton("no", null);
                                 builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
                                     @Override
@@ -241,7 +243,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 if (!recyclerView.canScrollVertically(1) && itemRecyclerAdapter.getItemCount() >= maxItemHistory) {
                     //Log.v(TAG, "Scroll state changed to: " + (newState == RecyclerView.SCROLL_STATE_IDLE ? "SCROLL_STATE_IDLE" : (newState == RecyclerView.SCROLL_STATE_DRAGGING ? "SCROLL_STATE_DRAGGING" : "SCROLL_STATE_SETTLING")));
 
-                    maxItemHistory += maxItemHistoryIncrease;
+                    maxItemHistory += MAX_ITEM_HISTORY_INCREASE;
                     itemRecyclerAdapter.notifyDataSetChanged();
                 }
             }
@@ -301,6 +303,9 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                             if (saveTask != null) {
                                 return;
                             }
+
+                            changedSinceLastArchive = true;
+
                             int deletedCount = db.delete(ItemTable.NAME, "1", null);
                             db.delete(LocationTable.NAME, null, null);
 
@@ -324,6 +329,11 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     Toast.makeText(this, "There are no items in this inventory", Toast.LENGTH_SHORT).show();
                 return true;
             case R.id.action_save_to_file:
+                if (itemRecyclerAdapter.getItemCount() <= 0) {
+                    Toast.makeText(this, "There are no items in this inventory", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                         //Toast.makeText(this, "Write external storage permission is required for this", Toast.LENGTH_SHORT).show();
@@ -333,16 +343,20 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                 if (saveTask == null) {
                     preSave();
+                    archiveDatabase();
+                    (savingToast = Toast.makeText(this, "Saving...", Toast.LENGTH_SHORT)).show();
                     saveTask = new SaveToFileTask().execute();
                 } else {
                     saveTask.cancel(false);
                     postSave();
                 }
+
                 return true;
             case R.id.action_preload:
+                startActivity(MainActivity.getPreloadIntent(this));
                 //startActivity(new Intent(this, PreloadLocationsActivity.class));
                 //finish();
-                Toast.makeText(this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
                 return true;
             case R.id.cancel_save:
                 if (saveTask != null) {
@@ -383,7 +397,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         }
     }
 
-    public int getItemCount() {
+    private int getItemCount() {
         Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + ";", null);
         cursor.moveToFirst();
         int count = cursor.getInt(cursor.getColumnIndex(cursor.getColumnNames()[0]));
@@ -391,7 +405,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         return count;
     }
 
-    public int getContainerCount() {
+    private int getContainerCount() {
         Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + IS_LIKE_CONTAINER_CLAUSE + ";", null);
         cursor.moveToFirst();
         int count = cursor.getInt(cursor.getColumnIndex(cursor.getColumnNames()[0]));
@@ -407,7 +421,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         return count;
     }*/
 
-    public void updateInfo() {
+    private void updateInfo() {
         //Log.v(TAG, "Updating info");
         ((TextView) findViewById(R.id.current_location)).setText(lastLocationBarcode);
         ((TextView) findViewById(R.id.last_scan)).setText(lastItemBarcode);
@@ -415,7 +429,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         ((TextView) findViewById(R.id.total_containers)).setText(String.valueOf(containerCount));
     }
 
-    public void preSave() {
+    private void preSave() {
         progressBar.setProgress(0);
         //progressBar.setVisibility(View.VISIBLE);
         mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(false);
@@ -425,7 +439,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         onPrepareOptionsMenu(mOptionsMenu);
     }
 
-    public void postSave() {
+    private void postSave() {
         saveTask = null;
         //progressBar.setVisibility(View.GONE);
         progressBar.setProgress(0);
@@ -438,12 +452,12 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
     private static final String alphaNumeric = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-    public void randomScan() {
+    private void randomScan() {
         Random r = new Random();
         int temp = r.nextInt(10);
         String barcode = (lastLocationId == -1 | temp < 2) ? "V" : (temp < 3 ? "m1" : (temp < 4 ? "M" : (temp < 7 ? "e1" : "E")));
 
-        for (int i = r.nextInt(6) + 6; i > 0; i--)
+        for (int i = r.nextInt(5) + 10; i > 0; i--)
             barcode = barcode.concat(String.valueOf(alphaNumeric.charAt(r.nextInt(alphaNumeric.length()))).toUpperCase());
 
         if (isLocation(barcode))
@@ -452,7 +466,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         scanBarcode(barcode);
     }
 
-    public void scanBarcode(String barcode) {
+    private void scanBarcode(String barcode) {
         String tags = "";
         if (saveTask != null) {
             Toast.makeText(this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
@@ -480,7 +494,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         }
     }
 
-    public void addBarcodeItem(@NonNull String barcode, @NonNull String tags) {
+    private void addBarcodeItem(@NonNull String barcode, @NonNull String tags) {
         if (saveTask != null) return;
         if (lastLocationId == -1) {
             Toast.makeText(this, "A location has not been scanned", Toast.LENGTH_SHORT).show();
@@ -499,6 +513,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             return;
         }
 
+        changedSinceLastArchive = true;
+
         //Log.v(TAG, "Added item \"" + barcode + "\" to the inventory");
 
         itemCount++;
@@ -514,7 +530,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         updateInfo();
     }
 
-    public void removeBarcodeItem(@NonNull InventoryItemViewHolder holder) {
+    private void removeBarcodeItem(@NonNull InventoryItemViewHolder holder) {
         if (saveTask != null) return;
         //System.out.println("remove item " + index);
         if (db.delete(ItemTable.NAME, InventoryDatabase.ID + " = ?;", new String[] {String.valueOf(holder.getId())}) > 0) {
@@ -525,9 +541,12 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 lastItemBarcode = getLastItemBarcode();
             }
 
+            changedSinceLastArchive = true;
+
             itemRecyclerAdapter.notifyItemRemoved(holder.getAdapterPosition());
             itemRecyclerAdapter.notifyItemRangeChanged(holder.getAdapterPosition() + 1, itemRecyclerAdapter.getItemCount() - holder.getAdapterPosition());
 
+            updateInfo();
         } else {
             Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.ID + " = ?;", new String[] {String.valueOf(holder.getId())});
             String barcode = "";
@@ -541,11 +560,9 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             Log.e(TAG, "Error removing item " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory");
             Toast.makeText(InventoryActivity.this, "Error removing item " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory", Toast.LENGTH_SHORT).show();
         }
-
-        updateInfo();
     }
 
-    public void addBarcodeContainer(@NonNull String barcode, @NonNull String tags) {
+    private void addBarcodeContainer(@NonNull String barcode, @NonNull String tags) {
         if (saveTask != null) return;
         if (lastLocationId == -1) {
             Toast.makeText(this, "A location has not been scanned", Toast.LENGTH_SHORT).show();
@@ -564,6 +581,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             return;
         }
 
+        changedSinceLastArchive = true;
+
         //Log.v(TAG, "Added container \"" + barcode + "\" to the inventory");
 
         containerCount++;
@@ -579,7 +598,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         updateInfo();
     }
 
-    public void removeBarcodeContainer(@NonNull InventoryItemViewHolder holder) {
+    private void removeBarcodeContainer(@NonNull InventoryItemViewHolder holder) {
         if (saveTask != null) return;
         if (db.delete(ItemTable.NAME, InventoryDatabase.ID + " = " + holder.getId(), null) > 0) {
             //Log.v(TAG, "Removed container \"" + holder.getItemBarcode() + "\" from the inventory");
@@ -590,8 +609,12 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 lastItemBarcode = getLastItemBarcode();
             }
 
+            changedSinceLastArchive = true;
+
             itemRecyclerAdapter.notifyItemRemoved(holder.getAdapterPosition());
             itemRecyclerAdapter.notifyItemRangeChanged(holder.getAdapterPosition() + 1, itemRecyclerAdapter.getItemCount() - holder.getAdapterPosition());
+
+            updateInfo();
         } else {
             Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.ID + " = ?;", new String[] {String.valueOf(holder.getId())});
             String barcode = "";
@@ -605,11 +628,9 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             Log.e(TAG, "Error removing container " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory");
             Toast.makeText(InventoryActivity.this, "Error removing container " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory", Toast.LENGTH_SHORT).show();
         }
-
-        updateInfo();
     }
 
-    public void addBarcodeLocation(@NonNull String barcode, String tags) {
+    private void addBarcodeLocation(@NonNull String barcode, String tags) {
         if (saveTask != null) return;
         ContentValues newLocation = new ContentValues();
         newLocation.put(InventoryDatabase.BARCODE, barcode);
@@ -624,6 +645,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             return;
         }
 
+        changedSinceLastArchive = true;
+
         //Log.v(TAG, "Added location \"" + barcode + "\" to the inventory");
 
         //locationCount++;
@@ -633,7 +656,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         updateInfo();
     }
 
-    public long getLastLocationId() {
+    private long getLastLocationId() {
         /*Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1;", null);
         long id = -1;
 
@@ -651,7 +674,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         }
     }
 
-    public String getLastLocationBarcode() {
+    private String getLastLocationBarcode() {
         /*Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1;", null);
         String barcode = "-";
 
@@ -669,7 +692,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         }
     }
 
-    public String getLastItemBarcode() {
+    private String getLastItemBarcode() {
         /*Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1;", null);
         String barcode = "-";
 
@@ -691,19 +714,19 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         HashMap<String, Object> itemForPhoto = items.get(index);
     }*/
 
-    public CharSequence formatDate(long millis) {
+    private CharSequence formatDate(long millis) {
         return DateFormat.format(DATE_FORMAT, millis).toString();
     }
 
-    public boolean isItem(@NonNull String barcode) {
+    private boolean isItem(@NonNull String barcode) {
         return barcode.startsWith("e1") || barcode.startsWith("E");// || barcode.startsWith("t") || barcode.startsWith("T");
     }
 
-    public boolean isContainer(@NonNull String barcode) {
+    private boolean isContainer(@NonNull String barcode) {
         return barcode.startsWith("m1") || barcode.startsWith("M");// || barcode.startsWith("a") || barcode.startsWith("A");
     }
 
-    public boolean isLocation(@NonNull String barcode) {
+    private boolean isLocation(@NonNull String barcode) {
         return barcode.startsWith("V");// || barcode.startsWith("L5");
     }
 
@@ -1042,8 +1065,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                 lineIndex = -1;
 
-                //itemCursor.close();
-                //locationCursor.close();
+                itemCursor.close();
+                locationCursor.close();
                 br.close();
 
                 if (OUTPUT_FILE.exists() && !OUTPUT_FILE.delete()) {
@@ -1096,16 +1119,33 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         }
 
         protected void onPostExecute(String result) {
+            if (savingToast != null) {
+                savingToast.cancel();
+                savingToast = null;
+            }
+
             Toast.makeText(InventoryActivity.this, result, Toast.LENGTH_SHORT).show();
+            archiveDatabase();
             postSave();
             MediaScannerConnection.scanFile(InventoryActivity.this, new String[]{OUTPUT_FILE.getAbsolutePath()}, null, null);
         }
 
         @Override
         protected void onCancelled(String s) {
+            if (savingToast != null) {
+                savingToast.cancel();
+                savingToast = null;
+            }
+
             Toast.makeText(InventoryActivity.this, s, Toast.LENGTH_SHORT).show();
             postSave();
         }
+    }
+
+    private void archiveDatabase() {
+        //noinspection ResultOfMethodCallIgnored
+        archiveDirectory.mkdirs();
+
     }
 
 

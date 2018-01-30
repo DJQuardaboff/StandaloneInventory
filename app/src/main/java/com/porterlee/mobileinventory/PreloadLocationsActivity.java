@@ -3,6 +3,7 @@ package com.porterlee.mobileinventory;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
@@ -10,7 +11,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 
+import java.io.File;
+
 public class PreloadLocationsActivity extends AppCompatActivity {
+    private static final File OUTPUT_FILE = new File(Environment.getExternalStorageDirectory(), "Download/preloadinfo.txt");
     private static final String TAG = PreloadLocationsActivity.class.getSimpleName();
     //todo finish
 
