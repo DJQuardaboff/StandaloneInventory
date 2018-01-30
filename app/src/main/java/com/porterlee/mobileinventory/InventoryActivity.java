@@ -22,6 +22,7 @@ import android.os.Environment;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.widget.TextViewCompat;
 import android.support.v7.app.AlertDialog;
@@ -50,6 +51,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 import com.porterlee.mobileinventory.InventoryDatabase.ItemTable;
@@ -82,7 +85,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private int errorColor = Color.RED;
     private MaterialProgressBar progressBar;
     private Menu mOptionsMenu;
-    private SaveToFileTask saveTask;
+    private AsyncTask<Void, Integer, String> saveTask;
     private int maxItemHistory = maxItemHistoryIncrease;
     private ScanResultReceiver resultReciever;
     private int itemCount = 0;
@@ -149,7 +152,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             public long getItemId(int i) {
                 Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.ID + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(i)});
                 cursor.moveToFirst();
-                long id = cursor.getLong(0);
+                long id = cursor.getLong(cursor.getColumnIndex(InventoryDatabase.ID));
                 cursor.close();
                 return id;
             }
@@ -210,8 +213,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.ID + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.DESCRIPTION + ", " + ItemTable.Keys.TAGS + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(position)});
                 cursor.moveToFirst();
 
-                final long itemId = cursor.getLong(cursor.getColumnIndex(InventoryDatabase.ID));
-                final long locationId = cursor.getLong(cursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
+                final long itemId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.ID));
+                final long locationId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
                 final String itemBarcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE));
                 final String itemDescription = cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION));
                 final String itemTags = cursor.getString(cursor.getColumnIndex(InventoryDatabase.TAGS));
@@ -251,7 +254,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         itemRecyclerAnimator.setRemoveDuration(100);
         itemRecyclerView.setItemAnimator(itemRecyclerAnimator);
 
-        //for (int i = 0; i < 20000; i++)
+        //for (int i = 0; i < 10000; i++)
             //randomScan();
 
         itemRecyclerAdapter.notifyDataSetChanged();
@@ -330,8 +333,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                 if (saveTask == null) {
                     preSave();
-                    saveTask = new SaveToFileTask();
-                    saveTask.execute();
+                    saveTask = new SaveToFileTask().execute();
                 } else {
                     saveTask.cancel(false);
                     postSave();
@@ -813,40 +815,123 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
     private class SaveToFileTask extends AsyncTask<Void, Integer, String> {
         protected String doInBackground(Void... voids) {
+            //if (cursors.length < 2)
+                //return "Incorrect number of arguments passed to save thread";
+
+            Cursor itemCursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.DATE_TIME + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " ASC;",null);
+            Cursor locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + ", " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " ASC;", null);
+
+            //Cursor itemCursor = cursors[0];
+            //Cursor locationCursor = cursors[1];
+
+            //HashMap<String, Object> tempHashmap;
+
+            //ArrayList<HashMap<String, Object>> itemHashmaps = new ArrayList<>();
+            itemCursor.moveToFirst();
+            int itemBarcodeIndex = itemCursor.getColumnIndex(InventoryDatabase.BARCODE);
+            int itemLocationIdIndex = itemCursor.getColumnIndex(InventoryDatabase.LOCATION_ID);
+            int itemDateTimeIndex = itemCursor.getColumnIndex(InventoryDatabase.DATE_TIME);
+
+            /*while (!itemCursor.isAfterLast()) {
+                tempHashmap = new HashMap<>();
+                tempHashmap.put(InventoryDatabase.BARCODE, itemCursor.getString(itemBarcodeIndex));
+                tempHashmap.put(InventoryDatabase.LOCATION_ID, itemCursor.getInt(itemLocationIdIndex));
+                tempHashmap.put(InventoryDatabase.DATE_TIME, itemCursor.getString(itemDateTimeIndex));
+                itemHashmaps.add(tempHashmap);
+                itemCursor.moveToNext();
+            }*/
+
+            //itemCursor.close();
+
+            //ArrayList<HashMap<String, Object>> locationHashmaps = new ArrayList<>();
+            locationCursor.moveToFirst();
+            int locationIdIndex = locationCursor.getColumnIndex(InventoryDatabase.ID);
+            int locationBarcodeIndex = locationCursor.getColumnIndex(InventoryDatabase.BARCODE);
+            int locationDateTimeIndex = locationCursor.getColumnIndex(InventoryDatabase.DATE_TIME);
+
+            /*while (!locationCursor.isAfterLast()) {
+                tempHashmap = new HashMap<>();
+                tempHashmap.put(InventoryDatabase.ID, locationCursor.getInt(locationIdIndex));
+                tempHashmap.put(InventoryDatabase.BARCODE, locationCursor.getString(locationBarcodeIndex));
+                tempHashmap.put(InventoryDatabase.DATE_TIME, locationCursor.getString(locationDateTimeIndex));
+                locationHashmaps.add(tempHashmap);
+                locationCursor.moveToNext();
+            }*/
+
+            //locationCursor.close();
+
             Log.v(TAG, "Saving to file");
             int lineIndex = -1;
-            int itemIndex = -1;
+            int progress = 0;
+            int tempProgress;
+            int maxProgress = progressBar.getMax();
 
             try {
                 final File TEMP_OUTPUT_FILE = File.createTempFile("inv", ".txt", OUTPUT_FILE.getParentFile());
                 Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
 
-                Cursor itemCursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.DATE_TIME + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " ASC;",null);
-                itemCursor.moveToFirst();
+                //Cursor itemCursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.DATE_TIME + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " ASC;",null);
+                //itemCursor.moveToFirst();
+                //int itemBarcodeIndex = itemCursor.getColumnIndex(InventoryDatabase.BARCODE);
+                //int itemLocationIdIndex = itemCursor.getColumnIndex(InventoryDatabase.LOCATION_ID);
+                //int itemDateTimeIndex = itemCursor.getColumnIndex(InventoryDatabase.DATE_TIME);
+                //Cursor locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + ", " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " ASC;", null);
+                //int locationIdIndex = locationCursor.getColumnIndex(InventoryDatabase.ID);
+                //int locationBarcodeIndex = locationCursor.getColumnIndex(InventoryDatabase.BARCODE);
+                //int locationDateTimeIndex = locationCursor.getColumnIndex(InventoryDatabase.DATE_TIME);
+                //locationCursor.moveToFirst();
                 int totalItemCount = itemCursor.getCount();
-                long currentLocation = -1;
+                //int totalItemCount = itemHashmaps.size();
+                int currentLocationId = -1;
 
                 PrintStream printStream = new PrintStream(TEMP_OUTPUT_FILE);
-                Cursor locationCursor;
-                //Cursor locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ?;", new String[] {String.valueOf(currentLocation)});
+                //Cursor locationCursor;
+
                 lineIndex = 0;
-                long tempLocation;
+                int tempLocation;
+                int itemIndex = 0;
+                //int locationIndex = 0;
                 String tempText;
 
+                //for (int i = 0; i < totalItemCount; i++) {
                 while (!itemCursor.isAfterLast()) {
                     if (isCancelled())
                         return "Save canceled";
-                    publishProgress((itemIndex * 100) / totalItemCount);
-                    tempLocation = itemCursor.getLong(itemCursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
 
-                    if (tempLocation != currentLocation) {
-                        currentLocation = tempLocation;
+                    tempProgress = (int) (((((float) itemIndex) / totalItemCount) / 1.5) * maxProgress);
+                    if (progress != tempProgress) {
+                    //if (true) {
+                        publishProgress(tempProgress);
+                        progress = tempProgress;
+                    }
 
-                        locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ? LIMIT 1;", new String[] {String.valueOf(currentLocation)});
+                    //publishProgress((itemIndex * 50) / totalItemCount);
+                    //publishProgress((i * 50) / totalItemCount);
+                    tempLocation = itemCursor.getInt(itemLocationIdIndex);
+                    //tempLocation = (Integer) itemHashmaps.get(i).get(InventoryDatabase.LOCATION_ID);
 
-                        locationCursor.moveToFirst();
-                        tempText = locationCursor.getString(locationCursor.getColumnIndex(InventoryDatabase.BARCODE)) + "|" + locationCursor.getString(locationCursor.getColumnIndex(InventoryDatabase.DATE_TIME));
-                        locationCursor.close();
+                    if (tempLocation != currentLocationId) {
+                        currentLocationId = tempLocation;
+
+                    //locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ? LIMIT 1;", new String[] {String.valueOf(currentLocationId)});
+
+                    while (locationCursor.getInt(locationIdIndex) != currentLocationId) {
+                        locationCursor.moveToNext();
+                        if (locationCursor.isAfterLast()) {
+                            return "Location of \"" + itemCursor.getString(itemBarcodeIndex).trim() + "\" does not exist";
+                        }
+                    }
+
+                    /*while (((Integer) locationHashmaps.get(locationIndex).get(InventoryDatabase.ID)) != currentLocationId) {
+                        locationIndex++;
+                        if (locationIndex >= locationHashmaps.size()) {
+                            return "Location of \"" + ((String) itemHashmaps.get(i).get(InventoryDatabase.BARCODE)).trim() + "\" does not exist";
+                        }
+                    }*/
+
+                        tempText = locationCursor.getString(locationBarcodeIndex) + "|" + locationCursor.getString(locationDateTimeIndex);
+                        //tempText = locationHashmaps.get(locationIndex).get(InventoryDatabase.BARCODE) + "|" + locationHashmaps.get(locationIndex).get(InventoryDatabase.DATE_TIME);
+                        //locationCursor.close();
 
                         //Log.v(TAG, locationText);
                         printStream.println(tempText);
@@ -855,7 +940,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                         lineIndex++;
                     }
 
-                    tempText = itemCursor.getString(itemCursor.getColumnIndex(InventoryDatabase.BARCODE)) + "|" + itemCursor.getString(itemCursor.getColumnIndex(InventoryDatabase.DATE_TIME));
+                    tempText = itemCursor.getString(itemBarcodeIndex) + "|" + itemCursor.getString(itemDateTimeIndex);
+                    //tempText = itemHashmaps.get(i).get(InventoryDatabase.BARCODE) + "|" + itemHashmaps.get(i).get(InventoryDatabase.DATE_TIME);
 
                     //Log.v(TAG, itemText);
                     printStream.println(tempText);
@@ -870,28 +956,58 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 printStream.close();
 
                 itemCursor.moveToFirst();
+                locationCursor.moveToFirst();
 
                 BufferedReader br = new BufferedReader(new FileReader(TEMP_OUTPUT_FILE));
                 String line;
-                currentLocation = -1;
+                currentLocationId = -1;
                 itemIndex = 0;
+                //locationIndex = 0;
                 lineIndex = 0;
 
+                //for (int i = 0; i < totalItemCount; i++) {
                 while (!itemCursor.isAfterLast()) {
                     if (isCancelled())
                         return "Save canceled";
-                    publishProgress((itemIndex * 100) / totalItemCount);
+
+                    tempProgress = (int) (((((float) itemIndex / totalItemCount) / 3) + (2 / 3f)) * maxProgress);
+                    if (progress != tempProgress) {
+                    //if (true) {
+                        publishProgress(tempProgress);
+                        progress = tempProgress;
+                    }
+
+                    //publishProgress((maxProgress) / 3);
+                    //publishProgress((i * 50) / totalItemCount);
                     line = br.readLine();
-                    tempLocation = itemCursor.getLong(itemCursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
+                    tempLocation = itemCursor.getInt(itemCursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
+                    //tempLocation = (Integer) itemHashmaps.get(i).get(InventoryDatabase.LOCATION_ID);
 
-                    if (tempLocation != currentLocation) {
-                        currentLocation = tempLocation;
+                    if (tempLocation != currentLocationId) {
+                        currentLocationId = tempLocation;
 
-                        locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ? LIMIT 1;", new String[] {String.valueOf(currentLocation)});
+                        //locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ? LIMIT 1;", new String[] {String.valueOf(currentLocationId)});
 
-                        locationCursor.moveToFirst();
-                        tempText = locationCursor.getString(locationCursor.getColumnIndex(InventoryDatabase.BARCODE)) + "|" + locationCursor.getString(locationCursor.getColumnIndex(InventoryDatabase.DATE_TIME));
-                        locationCursor.close();
+                        while (locationCursor.getInt(locationIdIndex) != currentLocationId) {
+                            locationCursor.moveToNext();
+                            if (locationCursor.isAfterLast()) {
+                                return "Location of \"" + itemCursor.getString(itemBarcodeIndex).trim() + "\" does not exist";
+                            }
+                        }
+
+                        /*while (((Integer) locationHashmaps.get(locationIndex).get(InventoryDatabase.ID)) != currentLocationId) {
+                            locationIndex++;
+                            if (locationIndex >= locationHashmaps.size()) {
+                                return "Location of \"" + ((String) itemHashmaps.get(i).get(InventoryDatabase.BARCODE)).trim() + "\" does not exist";
+                            }
+                        }*/
+
+                        tempText = locationCursor.getString(locationBarcodeIndex) + "|" + locationCursor.getString(locationDateTimeIndex);
+                        //tempText = itemHashmaps.get(i).get(InventoryDatabase.BARCODE) + "|" + itemHashmaps.get(i).get(InventoryDatabase.DATE_TIME);
+
+                        //locationCursor.moveToFirst();
+                        //tempText = locationCursor.getString(locationCursor.getColumnIndex(InventoryDatabase.BARCODE)) + "|" + locationCursor.getString(locationCursor.getColumnIndex(InventoryDatabase.DATE_TIME));
+                        //locationCursor.close();
 
                         if (!tempText.equals(line)) {
                             Log.e(TAG, "Error at line " + lineIndex + " of file output\n" +
@@ -908,6 +1024,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     }
 
                     tempText = itemCursor.getString(itemCursor.getColumnIndex(InventoryDatabase.BARCODE)) + "|" + itemCursor.getString(itemCursor.getColumnIndex(InventoryDatabase.DATE_TIME));
+                    //tempText = itemHashmaps.get(i).get(InventoryDatabase.BARCODE) + "|" + itemHashmaps.get(i).get(InventoryDatabase.DATE_TIME);
 
                     if (!tempText.equals(line)) {
                         Log.e(TAG, "Error at line " + lineIndex + " of file output\n" +
@@ -925,7 +1042,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                 lineIndex = -1;
 
-                itemCursor.close();
+                //itemCursor.close();
+                //locationCursor.close();
                 br.close();
 
                 if (OUTPUT_FILE.exists() && !OUTPUT_FILE.delete()) {
@@ -967,8 +1085,14 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             return "Saved to file";
         }
 
+        @Override
         protected void onProgressUpdate(Integer... progress) {
-            progressBar.setProgress(progress[0]);
+            /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                progressBar.setProgress(progress[0],true);
+                progressBar.animate();
+            } else*/ {
+                progressBar.setProgress(progress[0]);
+            }
         }
 
         protected void onPostExecute(String result) {
