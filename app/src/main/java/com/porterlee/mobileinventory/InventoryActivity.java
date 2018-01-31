@@ -186,7 +186,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                         public void onClick(View view) {
                             PopupMenu popup = new PopupMenu(InventoryActivity.this, view);
                             MenuInflater inflater = popup.getMenuInflater();
-                            inflater.inflate(R.menu.popup_menu, popup.getMenu());
+                            inflater.inflate(R.menu.inventory_item_popup_menu, popup.getMenu());
                             popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                                 @Override
                                 public boolean onMenuItemClick(MenuItem menuItem) {
@@ -402,7 +402,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                 return true;
             case R.id.action_preload:
-                //startActivity(MainActivity.getPreloadIntent(this));
+                //startActivity(InventoryActivity.getPreloadIntent(this));
                 //startActivity(new Intent(this, PreloadLocationsActivity.class));
                 //finish();
                 //Toast.makeText(this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
@@ -438,7 +438,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
             iScanner.aDecodeAPIInit();
             //try {
-                //Thread.sleep(500);
+            //Thread.sleep(500);
             //} catch (InterruptedException e) {
             //}
             iScanner.aDecodeSetDecodeEnable(1);
@@ -904,7 +904,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private class SaveToFileTask extends AsyncTask<Void, Integer, String> {
         protected String doInBackground(Void... voids) {
             //if (cursors.length < 2)
-                //return "Incorrect number of arguments passed to save thread";
+            //return "Incorrect number of arguments passed to save thread";
 
             Cursor itemCursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.DATE_TIME + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " ASC;",null);
             Cursor locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + ", " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " ASC;", null);
@@ -990,7 +990,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                     tempProgress = (int) (((((float) itemIndex) / totalItemCount) / 1.5) * maxProgress);
                     if (progress != tempProgress) {
-                    //if (true) {
+                        //if (true) {
                         publishProgress(tempProgress);
                         progress = tempProgress;
                     }
@@ -1003,14 +1003,14 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     if (tempLocation != currentLocationId) {
                         currentLocationId = tempLocation;
 
-                    //locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ? LIMIT 1;", new String[] {String.valueOf(currentLocationId)});
+                        //locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ? LIMIT 1;", new String[] {String.valueOf(currentLocationId)});
 
-                    while (locationCursor.getInt(locationIdIndex) != currentLocationId) {
-                        locationCursor.moveToNext();
-                        if (locationCursor.isAfterLast()) {
-                            return "Location of \"" + itemCursor.getString(itemBarcodeIndex).trim() + "\" does not exist";
+                        while (locationCursor.getInt(locationIdIndex) != currentLocationId) {
+                            locationCursor.moveToNext();
+                            if (locationCursor.isAfterLast()) {
+                                return "Location of \"" + itemCursor.getString(itemBarcodeIndex).trim() + "\" does not exist";
+                            }
                         }
-                    }
 
                     /*while (((Integer) locationHashmaps.get(locationIndex).get(InventoryDatabase.ID)) != currentLocationId) {
                         locationIndex++;
@@ -1062,7 +1062,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                     tempProgress = (int) (((((float) itemIndex / totalItemCount) / 3) + (2 / 3f)) * maxProgress);
                     if (progress != tempProgress) {
-                    //if (true) {
+                        //if (true) {
                         publishProgress(tempProgress);
                         progress = tempProgress;
                     }
@@ -1240,4 +1240,3 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         }
     }
 }
-
