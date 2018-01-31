@@ -45,7 +45,7 @@
         <TextView
             android:id="@+id/location_text_view"
             android:textColor="#4F000000"
-            android:layout_width="110dp"
+            android:layout_width="100dp"
             android:layout_height="30dp"
             android:gravity="center"
             android:layout_gravity="center"

@@ -21,6 +21,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.widget.TextViewCompat;
@@ -55,34 +57,34 @@ import java.util.Random;
 import com.porterlee.mobileinventory.InventoryDatabase.ItemTable;
 import com.porterlee.mobileinventory.InventoryDatabase.LocationTable;
 
+import device.scanner.DecodeResult;
 import device.scanner.IScannerService;
 import device.scanner.ScannerService;
 
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
-import static com.porterlee.mobileinventory.MainActivity.iScanner;
-import static com.porterlee.mobileinventory.MainActivity.mDecodeResult;
-
 public class InventoryActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    private static final File OUTPUT_FILE = new File(Environment.getExternalStorageDirectory(), InventoryDatabase.DIRECTORY + "/data.txt");
+    public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), InventoryDatabase.DIRECTORY);
     private static final String IS_LIKE_ITEM_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'e1%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'E%\'";
     private static final String IS_LIKE_CONTAINER_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'m1%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'M%\'";
     //private static final String IS_LIKE_LOCATION_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'V%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'L5%\'";
-    private static final String DUPLICATE_BARCODE_TAG = "D";
     //private static final String IS_LIKE_PROCESS_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'L3%\'";
+    private static final String DUPLICATE_BARCODE_TAG = "D";
     private static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
     private static final String TAG = InventoryActivity.class.getSimpleName();
     private static final int MAX_ITEM_HISTORY_INCREASE = 25;
+    private static final int errorColor = Color.RED;
     private SQLiteStatement LAST_ITEM_BARCODE_STATEMENT;
     private SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
     private SQLiteStatement LAST_LOCATION_ID_STATEMENT;
+    private Vibrator vibrator;
+    private File outputFile;
     private File databaseFile;
     private File archiveDirectory;
-    private boolean changedSinceLastArchive = false;
+    private boolean changedSinceLastArchive = true;
     private Toast savingToast;
     private int[] autosizeInventoryItemTextSizes;
     private int[] autosizeInventoryLocationTextSizes;
-    private int errorColor = Color.RED;
     private MaterialProgressBar progressBar;
     private Menu mOptionsMenu;
     private AsyncTask<Void, Integer, String> saveTask;
@@ -98,6 +100,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private RecyclerView itemRecyclerView;
     private RecyclerView.Adapter itemRecyclerAdapter;
     private SQLiteDatabase db;
+    private IScannerService iScanner = null;
+    private DecodeResult mDecodeResult = new DecodeResult();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,157 +114,202 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             e.printStackTrace();
         }
 
+        vibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
+
         Resources resources = getResources();
         autosizeInventoryItemTextSizes = resources.getIntArray(R.array.autosize_inventory_item_text_sizes);
         autosizeInventoryLocationTextSizes = resources.getIntArray(R.array.autosize_inventory_location_text_sizes);
 
         archiveDirectory = new File(getFilesDir() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY);
-
+        //noinspection ResultOfMethodCallIgnored
+        archiveDirectory.mkdirs();
+        outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "data.txt");
+        //noinspection ResultOfMethodCallIgnored
+        outputFile.mkdirs();
         databaseFile = new File(getFilesDir() + "/" + InventoryDatabase.DIRECTORY + "/" + InventoryDatabase.FILE_NAME);
         //noinspection ResultOfMethodCallIgnored
         databaseFile.mkdirs();
-        db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
 
-        //db.execSQL("DROP TABLE IF EXISTS " + ItemTable.NAME);
-        //db.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
+        try {
+            db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
 
-        db.execSQL("CREATE TABLE IF NOT EXISTS " + ItemTable.TABLE_CREATION);
-        db.execSQL("CREATE TABLE IF NOT EXISTS " + LocationTable.TABLE_CREATION);
+            //db.execSQL("DROP TABLE IF EXISTS " + ItemTable.NAME);
+            //db.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
 
-        LAST_ITEM_BARCODE_STATEMENT = db.compileStatement("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1;");
-        LAST_LOCATION_BARCODE_STATEMENT = db.compileStatement("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1;");
-        LAST_LOCATION_ID_STATEMENT = db.compileStatement("SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1;");
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + ItemTable.TABLE_CREATION);
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + LocationTable.TABLE_CREATION);
 
-        itemCount = getItemCount();
-        containerCount = getContainerCount();
-        lastLocationId = getLastLocationId();
-        lastLocationBarcode = getLastLocationBarcode();
-        lastItemBarcode = getLastItemBarcode();
+            LAST_ITEM_BARCODE_STATEMENT = db.compileStatement("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1;");
+            LAST_LOCATION_BARCODE_STATEMENT = db.compileStatement("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1;");
+            LAST_LOCATION_ID_STATEMENT = db.compileStatement("SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1;");
 
-        progressBar = findViewById(R.id.progress_saving);
+            itemCount = getItemCount();
+            containerCount = getContainerCount();
+            lastLocationId = getLastLocationId();
+            lastLocationBarcode = getLastLocationBarcode();
+            lastItemBarcode = getLastItemBarcode();
 
-        this.<Button>findViewById(R.id.random_scan_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                randomScan();
-            }
-        });
+            progressBar = findViewById(R.id.progress_saving);
 
-        itemRecyclerView = findViewById(R.id.item_list_view);
-        itemRecyclerView.setHasFixedSize(true);
-        itemRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        itemRecyclerAdapter = new RecyclerView.Adapter() {
-            @Override
-            public long getItemId(int i) {
-                Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.ID + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(i)});
-                cursor.moveToFirst();
-                long id = cursor.getLong(cursor.getColumnIndex(InventoryDatabase.ID));
-                cursor.close();
-                return id;
-            }
+            this.<Button>findViewById(R.id.random_scan_button).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    randomScan();
+                }
+            });
 
-            @Override
-            public int getItemCount() {
-                int count = itemCount + containerCount;
-                count = Math.min(count, maxItemHistory);
-                return count;
-            }
+            itemRecyclerView = findViewById(R.id.item_list_view);
+            itemRecyclerView.setHasFixedSize(true);
+            itemRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+            itemRecyclerAdapter = new RecyclerView.Adapter() {
+                @Override
+                public long getItemId(int i) {
+                    Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.ID + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(i)});
+                    cursor.moveToFirst();
+                    long id = cursor.getLong(cursor.getColumnIndex(InventoryDatabase.ID));
+                    cursor.close();
+                    return id;
+                }
 
-            @Override
-            public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                final InventoryItemViewHolder inventoryItemViewHolder = new InventoryItemViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.inventory_item_layout, parent, false));
-                inventoryItemViewHolder.expandedMenuButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        PopupMenu popup = new PopupMenu(InventoryActivity.this, view);
-                        MenuInflater inflater = popup.getMenuInflater();
-                        inflater.inflate(R.menu.popup_menu, popup.getMenu());
-                        popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-                            @Override
-                            public boolean onMenuItemClick(MenuItem menuItem) {
-                                if (saveTask != null) {
-                                    Toast.makeText(InventoryActivity.this, "Cannot edit inventory while saving", Toast.LENGTH_SHORT).show();
+                @Override
+                public int getItemCount() {
+                    int count = itemCount + containerCount;
+                    count = Math.min(count, maxItemHistory);
+                    return count;
+                }
+
+                @Override
+                public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                    final InventoryItemViewHolder inventoryItemViewHolder = new InventoryItemViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.inventory_item_layout, parent, false));
+                    inventoryItemViewHolder.expandedMenuButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            PopupMenu popup = new PopupMenu(InventoryActivity.this, view);
+                            MenuInflater inflater = popup.getMenuInflater();
+                            inflater.inflate(R.menu.popup_menu, popup.getMenu());
+                            popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                                @Override
+                                public boolean onMenuItemClick(MenuItem menuItem) {
+                                    if (saveTask != null) {
+                                        Toast.makeText(InventoryActivity.this, "Cannot edit inventory while saving", Toast.LENGTH_SHORT).show();
+                                        return true;
+                                    }
+                                    AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
+                                    builder.setCancelable(true);
+                                    builder.setTitle("Remove " + (isItem(inventoryItemViewHolder.getItemBarcode()) ? "Item" : "Container"));
+                                    builder.setMessage("Are you sure you want to remove this item?");
+                                    builder.setNegativeButton("no", null);
+                                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            Log.d(TAG, "Removing " + (isItem(inventoryItemViewHolder.getItemBarcode()) ? "item" : "container") + " at position " + inventoryItemViewHolder.getAdapterPosition() + " with barcode " + inventoryItemViewHolder.getItemBarcode());
+
+                                            if (isContainer(inventoryItemViewHolder.getItemBarcode()))
+                                                removeBarcodeContainer(inventoryItemViewHolder);
+
+                                            if (isItem(inventoryItemViewHolder.getItemBarcode()))
+                                                removeBarcodeItem(inventoryItemViewHolder);
+                                        }
+                                    });
+                                    builder.create().show();
+
                                     return true;
                                 }
-                                AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
-                                builder.setCancelable(true);
-                                builder.setTitle("Remove " + (isItem(inventoryItemViewHolder.getItemBarcode()) ? "Item" : "Container"));
-                                builder.setMessage("Are you sure you want to remove this item?");
-                                builder.setNegativeButton("no", null);
-                                builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        Log.d(TAG, "Removing " + (isItem(inventoryItemViewHolder.getItemBarcode()) ? "item" : "container") + " at position " + inventoryItemViewHolder.getAdapterPosition() + " with barcode " + inventoryItemViewHolder.getItemBarcode());
-
-                                        if (isContainer(inventoryItemViewHolder.getItemBarcode()))
-                                            removeBarcodeContainer(inventoryItemViewHolder);
-
-                                        if (isItem(inventoryItemViewHolder.getItemBarcode()))
-                                            removeBarcodeItem(inventoryItemViewHolder);
-                                    }
-                                });
-                                builder.create().show();
-
-                                return true;
-                            }
-                        });
-                        popup.show();
-                    }
-                });
-                return inventoryItemViewHolder;
-            }
-
-            @Override
-            public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
-                Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.ID + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.DESCRIPTION + ", " + ItemTable.Keys.TAGS + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(position)});
-                cursor.moveToFirst();
-
-                final long itemId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.ID));
-                final long locationId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
-                final String itemBarcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE));
-                final String itemDescription = cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION));
-                final String itemTags = cursor.getString(cursor.getColumnIndex(InventoryDatabase.TAGS));
-
-                cursor.close();
-
-                cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DESCRIPTION + ", " + LocationTable.Keys.TAGS + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ?;", new String[] {String.valueOf(locationId)});
-                cursor.moveToFirst();
-
-                ((InventoryItemViewHolder) holder).bindViews(itemId, itemBarcode, itemDescription, itemTags, cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE)), cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION)), cursor.getString(cursor.getColumnIndex(InventoryDatabase.TAGS)));
-
-                cursor.close();
-            }
-
-            @Override
-            public int getItemViewType(int i) {
-                return 0;
-            }
-        };
-        itemRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-                super.onScrollStateChanged(recyclerView, newState);
-                if (!recyclerView.canScrollVertically(1) && itemRecyclerAdapter.getItemCount() >= maxItemHistory) {
-                    //Log.v(TAG, "Scroll state changed to: " + (newState == RecyclerView.SCROLL_STATE_IDLE ? "SCROLL_STATE_IDLE" : (newState == RecyclerView.SCROLL_STATE_DRAGGING ? "SCROLL_STATE_DRAGGING" : "SCROLL_STATE_SETTLING")));
-
-                    maxItemHistory += MAX_ITEM_HISTORY_INCREASE;
-                    itemRecyclerAdapter.notifyDataSetChanged();
+                            });
+                            popup.show();
+                        }
+                    });
+                    return inventoryItemViewHolder;
                 }
-            }
-        });
-        itemRecyclerView.setAdapter(itemRecyclerAdapter);
-        final RecyclerView.ItemAnimator itemRecyclerAnimator = new DefaultItemAnimator();
-        itemRecyclerAnimator.setAddDuration(100);
-        itemRecyclerAnimator.setChangeDuration(100);
-        itemRecyclerAnimator.setMoveDuration(100);
-        itemRecyclerAnimator.setRemoveDuration(100);
-        itemRecyclerView.setItemAnimator(itemRecyclerAnimator);
 
-        //for (int i = 0; i < 10000; i++)
+                @Override
+                public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
+                    Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.ID + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.DESCRIPTION + ", " + ItemTable.Keys.TAGS + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(position)});
+                    cursor.moveToFirst();
+
+                    final long itemId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.ID));
+                    final long itemLocationId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
+                    final String itemBarcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE));
+                    final String itemDescription = cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION));
+                    final String itemTags = cursor.getString(cursor.getColumnIndex(InventoryDatabase.TAGS));
+
+                    cursor.close();
+
+                    cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DESCRIPTION + ", " + LocationTable.Keys.TAGS + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ?;", new String[] {String.valueOf(itemLocationId)});
+                    cursor.moveToFirst();
+
+                    final String locationBarcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE));
+                    final String locationDescription = cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION));
+                    final String locationTags = cursor.getString(cursor.getColumnIndex(InventoryDatabase.TAGS));
+
+                    cursor.close();
+
+                    ((InventoryItemViewHolder) holder).bindViews(itemId, itemBarcode, itemDescription, itemTags, locationBarcode, locationDescription, locationTags);
+
+                }
+
+                @Override
+                public int getItemViewType(int i) {
+                    return 0;
+                }
+            };
+            itemRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                    super.onScrollStateChanged(recyclerView, newState);
+                    if (!recyclerView.canScrollVertically(1) && itemRecyclerAdapter.getItemCount() >= maxItemHistory) {
+                        //Log.v(TAG, "Scroll state changed to: " + (newState == RecyclerView.SCROLL_STATE_IDLE ? "SCROLL_STATE_IDLE" : (newState == RecyclerView.SCROLL_STATE_DRAGGING ? "SCROLL_STATE_DRAGGING" : "SCROLL_STATE_SETTLING")));
+
+                        maxItemHistory += MAX_ITEM_HISTORY_INCREASE;
+                        itemRecyclerAdapter.notifyDataSetChanged();
+                    }
+                }
+            });
+            itemRecyclerView.setAdapter(itemRecyclerAdapter);
+            final RecyclerView.ItemAnimator itemRecyclerAnimator = new DefaultItemAnimator();
+            itemRecyclerAnimator.setAddDuration(100);
+            itemRecyclerAnimator.setChangeDuration(100);
+            itemRecyclerAnimator.setMoveDuration(100);
+            itemRecyclerAnimator.setRemoveDuration(100);
+            itemRecyclerView.setItemAnimator(itemRecyclerAnimator);
+
+            //for (int i = 0; i < 10000; i++)
             //randomScan();
 
-        itemRecyclerAdapter.notifyDataSetChanged();
-        updateInfo();
+            itemRecyclerAdapter.notifyDataSetChanged();
+            updateInfo();
+        } catch (Exception e) {
+            try {
+                if (databaseFile.renameTo(File.createTempFile("error", ".db", new File(databaseFile.getParent() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY))))
+                    Toast.makeText(this, "There was an error loading the database. It has been archived", Toast.LENGTH_SHORT).show();
+            } catch (IOException e1) {
+                //Toast.makeText(this, "There was an error loading the database and it could not be archived", Toast.LENGTH_SHORT).show();
+                e1.printStackTrace();
+                AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
+                builder.setCancelable(true);
+                builder.setTitle("Delete Database");
+                builder.setMessage("There was an error loading the last inventory and it could not be archived.\nWould you like to delete the it?\nAnswering no will return you to the previous screen.");
+                builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                });
+                builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (!databaseFile.delete()) {
+                            Toast.makeText(InventoryActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
+                            finish();
+                            return;
+                        }
+                        Toast.makeText(InventoryActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                builder.create().show();
+            }
+            db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
+        }
     }
 
     @Override
@@ -457,7 +506,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         int temp = r.nextInt(10);
         String barcode = (lastLocationId == -1 | temp < 2) ? "V" : (temp < 3 ? "m1" : (temp < 4 ? "M" : (temp < 7 ? "e1" : "E")));
 
-        for (int i = r.nextInt(5) + 10; i > 0; i--)
+        for (int i = r.nextInt(5) + 5; i > 0; i--)
             barcode = barcode.concat(String.valueOf(alphaNumeric.charAt(r.nextInt(alphaNumeric.length()))).toUpperCase());
 
         if (isLocation(barcode))
@@ -469,6 +518,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private void scanBarcode(String barcode) {
         String tags = "";
         if (saveTask != null) {
+            vibrate(300);
             Toast.makeText(this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -477,6 +527,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
         if (cursor.getCount() > 0) {
             cursor.close();
+            vibrate(300);
             Toast.makeText(this, "Duplicate " + (isItem(barcode) ? "item" : "container") + " scanned", Toast.LENGTH_SHORT).show();
             tags = tags.concat(DUPLICATE_BARCODE_TAG);
         }
@@ -490,7 +541,16 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         } else if (isLocation(barcode)) {
             addBarcodeLocation(barcode, tags);
         } else {
+            vibrate(300);
             Toast.makeText(this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void vibrate(long millis) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(millis, VibrationEffect.DEFAULT_AMPLITUDE));
+        } else {
+            vibrator.vibrate(millis);
         }
     }
 
@@ -508,6 +568,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         newItem.put(InventoryDatabase.DATE_TIME, String.valueOf(formatDate(System.currentTimeMillis())));
 
         if (db.insert(ItemTable.NAME, null, newItem) == -1) {
+            vibrate(300);
             Log.e(TAG, "Error adding item \"" + barcode + "\" to the inventory");
             Toast.makeText(this, "Error adding item \"" + barcode + "\" to the inventory", Toast.LENGTH_SHORT).show();
             return;
@@ -548,6 +609,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
             updateInfo();
         } else {
+            vibrate(300);
             Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.ID + " = ?;", new String[] {String.valueOf(holder.getId())});
             String barcode = "";
 
@@ -576,6 +638,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         newContainer.put(InventoryDatabase.DATE_TIME, String.valueOf(formatDate(System.currentTimeMillis())));
 
         if (db.insert(ItemTable.NAME, null, newContainer) == -1) {
+            vibrate(300);
             Log.e(TAG, "Error adding container \"" + barcode + "\" to the inventory");
             Toast.makeText(this, "Error adding container \"" + barcode + "\" to the inventory", Toast.LENGTH_SHORT).show();
             return;
@@ -616,6 +679,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
             updateInfo();
         } else {
+            vibrate(300);
             Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.ID + " = ?;", new String[] {String.valueOf(holder.getId())});
             String barcode = "";
 
@@ -640,6 +704,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         long rowID = db.insert(LocationTable.NAME, null, newLocation);
 
         if (rowID == -1) {
+            vibrate(300);
             Log.e(TAG, "Error adding location \"" + barcode + "\" to the inventory");
             Toast.makeText(this, "Error adding location \"" + barcode + "\" to the inventory", Toast.LENGTH_SHORT).show();
             return;
@@ -735,7 +800,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }*/
 
     class InventoryItemViewHolder extends RecyclerView.ViewHolder {
-        private MaterialProgressBar progressBarWaiting;
+        //private MaterialProgressBar progressBarWaiting;
         private TextView itemBarcodeTextView;
         private ColorStateList itemBarcodeTextViewDefaultColor;
         private TextView itemLocationTextView;
@@ -744,10 +809,10 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         private long id = -1;
         private String itemBarcode;
         private String itemDescription;
-        private String itemTags;
+        //private String itemTags;
         private String locationBarcode;
         private String locationDescription;
-        private String locationTags;
+        //private String locationTags;
 
         InventoryItemViewHolder(final View itemView) {
             super(itemView);
@@ -765,24 +830,24 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             return id;
         }
 
-        public MaterialProgressBar getProgressBarWaiting() {
+        /*MaterialProgressBar getProgressBarWaiting() {
             return progressBarWaiting;
         }
 
-        public TextView getItemBarcodeTextView() {
-            return itemBarcodeTextView;
-        }
-
-        public TextView getItemLocationTextView() {
-            return itemLocationTextView;
-        }
-
-        public View getItemDividerView() {
+        View getItemDividerView() {
             return itemDividerView;
         }
 
-        public ImageButton getExpandedMenuButton() {
+        ImageButton getExpandedMenuButton() {
             return expandedMenuButton;
+        }*/
+
+        TextView getItemBarcodeTextView() {
+            return itemBarcodeTextView;
+        }
+
+        TextView getItemLocationTextView() {
+            return itemLocationTextView;
         }
 
         String getItemBarcode() {
@@ -805,10 +870,10 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             this.id = id;
             this.itemBarcode = itemBarcode;
             this.itemDescription = itemDescription;
-            this.itemTags = itemTags;
+            //this.itemTags = itemTags;
             this.locationBarcode = locationBarcode;
             this.locationDescription = locationDescription;
-            this.locationTags = locationTags;
+            //this.locationTags = locationTags;
 
             /*if (ready)*/ {
                 //progressLoading.setVisibility(View.GONE);
@@ -890,7 +955,9 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             int maxProgress = progressBar.getMax();
 
             try {
-                final File TEMP_OUTPUT_FILE = File.createTempFile("inv", ".txt", OUTPUT_FILE.getParentFile());
+                //noinspection ResultOfMethodCallIgnored
+                OUTPUT_PATH.mkdirs();
+                final File TEMP_OUTPUT_FILE = File.createTempFile("inv", ".txt", OUTPUT_PATH);
                 Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
 
                 //Cursor itemCursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.DATE_TIME + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " ASC;",null);
@@ -1069,18 +1136,18 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 locationCursor.close();
                 br.close();
 
-                if (OUTPUT_FILE.exists() && !OUTPUT_FILE.delete()) {
+                if (outputFile.exists() && !outputFile.delete()) {
                     //noinspection ResultOfMethodCallIgnored
                     TEMP_OUTPUT_FILE.delete();
                     Log.e(TAG, "Could not delete existing output file");
                     return "Could not delete existing output file";
                 }
 
-                if (!TEMP_OUTPUT_FILE.renameTo(OUTPUT_FILE)) {
+                if (!TEMP_OUTPUT_FILE.renameTo(outputFile)) {
                     //noinspection ResultOfMethodCallIgnored
                     TEMP_OUTPUT_FILE.delete();
-                    Log.e(TAG, "Could not rename temp file to \"" + OUTPUT_FILE.getName() + "\"");
-                    return "Could not rename temp file to \"" + OUTPUT_FILE.getName() + "\"";
+                    Log.e(TAG, "Could not rename temp file to \"" + outputFile.getName() + "\"");
+                    return "Could not rename temp file to \"" + outputFile.getName() + "\"";
                 }
             } catch (FileNotFoundException e){//IOException e) {
                 if (lineIndex == -1) {
@@ -1104,7 +1171,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 }
             }
 
-            Log.v(TAG, "Saved to: " + OUTPUT_FILE.getAbsolutePath());
+            Log.v(TAG, "Saved to: " + outputFile.getAbsolutePath());
             return "Saved to file";
         }
 
@@ -1125,9 +1192,10 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             }
 
             Toast.makeText(InventoryActivity.this, result, Toast.LENGTH_SHORT).show();
-            archiveDatabase();
+            if (changedSinceLastArchive)
+                archiveDatabase();
             postSave();
-            MediaScannerConnection.scanFile(InventoryActivity.this, new String[]{OUTPUT_FILE.getAbsolutePath()}, null, null);
+            MediaScannerConnection.scanFile(InventoryActivity.this, new String[]{outputFile.getAbsolutePath()}, null, null);
         }
 
         @Override
@@ -1144,10 +1212,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
     private void archiveDatabase() {
         //noinspection ResultOfMethodCallIgnored
-        archiveDirectory.mkdirs();
-
+        //archiveDirectory.mkdirs();
     }
-
 
     private class ScanResultReceiver extends BroadcastReceiver {
         @Override

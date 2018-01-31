@@ -158,7 +158,7 @@
             android:layout_weight="1"/>
 
         <TextView
-            android:layout_width="110dp"
+            android:layout_width="100dp"
             android:layout_height="wrap_content"
             android:text="@string/inventory_location_column_title"
             android:layout_marginStart="5dp"

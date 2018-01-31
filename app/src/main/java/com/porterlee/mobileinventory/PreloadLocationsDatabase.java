@@ -2,6 +2,8 @@ package com.porterlee.mobileinventory;
 
 public class PreloadLocationsDatabase {
     public static final String FILE_NAME = "preload_locations.db";
+    public static final String DIRECTORY = "Preload/Locations";
+    public static final String ARCHIVE_DIRECTORY = "Archives";
     public static final String ID = "id";
     public static final String BARCODE = "barcode";
     public static final String DESCRIPTION = "description";

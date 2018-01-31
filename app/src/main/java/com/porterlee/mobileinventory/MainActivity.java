@@ -32,8 +32,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     private static final String INTENDED_PRODUCT = "XM5";
     private static final int INTENDED_SDK_INT = 17;
     private AlertDialog dialog;
-    static IScannerService iScanner = null;
-    static DecodeResult mDecodeResult = new DecodeResult();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,6 +91,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Log.d(TAG, "Preload");
+                startActivity(getPreloadIntent(MainActivity.this));
             }
         });
         builder.setPositiveButton("Standard Inventory", new DialogInterface.OnClickListener() {
@@ -106,6 +105,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
     public static Intent getPreloadIntent(Context context) {
+
         return new Intent(context, PreloadLocationsActivity.class);
     }
 
