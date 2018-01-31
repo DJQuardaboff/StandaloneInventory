@@ -64,7 +64,7 @@ import device.scanner.ScannerService;
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
 public class InventoryActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), InventoryDatabase.DIRECTORY);
+    public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), "Download");
     private static final String IS_LIKE_ITEM_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'e1%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'E%\'";
     private static final String IS_LIKE_CONTAINER_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'m1%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'M%\'";
     //private static final String IS_LIKE_LOCATION_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'V%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'L5%\'";
@@ -123,7 +123,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         archiveDirectory = new File(getFilesDir() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY);
         //noinspection ResultOfMethodCallIgnored
         archiveDirectory.mkdirs();
-        outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "data.txt");
+        outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "invinfo.txt");
         //noinspection ResultOfMethodCallIgnored
         outputFile.mkdirs();
         databaseFile = new File(getFilesDir() + "/" + InventoryDatabase.DIRECTORY + "/" + InventoryDatabase.FILE_NAME);
@@ -402,7 +402,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                 return true;
             case R.id.action_preload:
-                startActivity(MainActivity.getPreloadIntent(this));
+                //startActivity(MainActivity.getPreloadIntent(this));
                 //startActivity(new Intent(this, PreloadLocationsActivity.class));
                 //finish();
                 //Toast.makeText(this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
@@ -948,7 +948,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
             //locationCursor.close();
 
-            Log.v(TAG, "Saving to file");
+            //Log.v(TAG, "Saving to file");
             int lineIndex = -1;
             int progress = 0;
             int tempProgress;
@@ -957,7 +957,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             try {
                 //noinspection ResultOfMethodCallIgnored
                 OUTPUT_PATH.mkdirs();
-                final File TEMP_OUTPUT_FILE = File.createTempFile("inv", ".txt", OUTPUT_PATH);
+                final File TEMP_OUTPUT_FILE = File.createTempFile("invinfo", ".txt", OUTPUT_PATH);
                 Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
 
                 //Cursor itemCursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.DATE_TIME + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " ASC;",null);

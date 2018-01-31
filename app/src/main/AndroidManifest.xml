@@ -1,17 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     package="com.porterlee.mobileinventory">
 
     <permission
         android:name="com.porterlee.mobileinventory.permission.SCANNER_RESULT_RECEIVER"
         android:protectionLevel="normal"/>
-
-    <uses-sdk
-        android:minSdkVersion="17"
-        android:targetSdkVersion="17"
-        android:maxSdkVersion="17" />
 
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="com.porterlee.mobileinventory.SCANNER_RESULT_RECEIVER"/>

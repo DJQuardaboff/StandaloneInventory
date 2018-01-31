@@ -223,7 +223,7 @@ public class PreloadLocationsActivity extends AppCompatActivity {
             updateInfo();
         } catch (Exception e) {
             try {
-                if (databaseFile.renameTo(File.createTempFile("error", ".db", new File(databaseFile.getParent() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY))))
+                if (databaseFile.renameTo(File.createTempFile("error", ".db", archiveDirectory)))
                     Toast.makeText(this, "There was an error loading the database. It has been archived", Toast.LENGTH_SHORT).show();
             } catch (IOException e1) {
                 //Toast.makeText(this, "There was an error loading the database and it could not be archived", Toast.LENGTH_SHORT).show();

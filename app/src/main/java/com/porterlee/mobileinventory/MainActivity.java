@@ -36,6 +36,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        startActivity(new Intent(this, InventoryActivity.class));
+        finish();
 
         //WindowManager windowmanager = (WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
         //windowmanager.getDefaultDisplay().
@@ -81,7 +83,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             return;
         }*/
 
-        setContentView(R.layout.main_layout);
+        /*setContentView(R.layout.main_layout);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(false);
@@ -101,7 +103,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                 startActivity(new Intent(MainActivity.this, InventoryActivity.class));
             }
         });
-        dialog = builder.create();
+        dialog = builder.create();*/
     }
 
     public static Intent getPreloadIntent(Context context) {
@@ -133,7 +135,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     private void askForMode() {
         if (!dialog.isShowing()) dialog.show();
-        final AlertDialog d = dialog;
+        /*final AlertDialog d = dialog;
 
         if(d != null) {
             d.getButton(Dialog.BUTTON_NEGATIVE).setOnClickListener(new View.OnClickListener() {
@@ -143,7 +145,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                     Toast.makeText(MainActivity.this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
                 }
             });
-        }
+        }*/
     }
 
     @Override
@@ -166,13 +168,13 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     @Override
     protected void onStart() {
         super.onStart();
-        askForPermission();
+        //askForPermission();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        askForMode();
+        //askForMode();
     }
 }
 
