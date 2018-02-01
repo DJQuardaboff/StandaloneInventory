@@ -164,7 +164,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             return;
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
-        builder.setCancelable(true);
+        builder.setCancelable(false);
         builder.setTitle("Database Error");
         builder.setMessage("There was an error loading the last inventory and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will close the app.");
         builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
