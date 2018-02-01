@@ -65,7 +65,7 @@ import device.scanner.ScannerService;
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
 public class InventoryActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), "Download");
+    public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), InventoryDatabase.DIRECTORY);
     private static final String IS_LIKE_ITEM_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'e1%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'E%\'";
     private static final String IS_LIKE_CONTAINER_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'m1%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'M%\'";
     //private static final String IS_LIKE_LOCATION_CLAUSE = ItemTable.Keys.BARCODE + " LIKE \'V%\' OR " + ItemTable.Keys.BARCODE + " LIKE \'L5%\'";
@@ -124,7 +124,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         archiveDirectory = new File(getFilesDir() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY);
         //noinspection ResultOfMethodCallIgnored
         archiveDirectory.mkdirs();
-        outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "invinfo.txt");
+        outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "data.txt");
         //noinspection ResultOfMethodCallIgnored
         outputFile.mkdirs();
         databaseFile = new File(getFilesDir() + "/" + InventoryDatabase.DIRECTORY + "/" + InventoryDatabase.FILE_NAME);
@@ -964,7 +964,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             try {
                 //noinspection ResultOfMethodCallIgnored
                 OUTPUT_PATH.mkdirs();
-                final File TEMP_OUTPUT_FILE = File.createTempFile("invinfo", ".txt", OUTPUT_PATH);
+                final File TEMP_OUTPUT_FILE = File.createTempFile("tmp", ".txt", OUTPUT_PATH);
                 Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
 
                 //Cursor itemCursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.DATE_TIME + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " ASC;",null);
@@ -1026,22 +1026,22 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                         }
                     }*/
 
-                        tempText = locationCursor.getString(locationBarcodeIndex) + "|" + locationCursor.getString(locationDateTimeIndex);
+                        tempText = locationCursor.getString(locationBarcodeIndex) + "|" + locationCursor.getString(locationDateTimeIndex) + "\r\n";
                         //tempText = locationHashmaps.get(locationIndex).get(InventoryDatabase.BARCODE) + "|" + locationHashmaps.get(locationIndex).get(InventoryDatabase.DATE_TIME);
                         //locationCursor.close();
 
                         //Log.v(TAG, locationText);
-                        printStream.println(tempText);
+                        printStream.print(tempText);
 
                         printStream.flush();
                         lineIndex++;
                     }
 
-                    tempText = itemCursor.getString(itemBarcodeIndex) + "|" + itemCursor.getString(itemDateTimeIndex);
+                    tempText = itemCursor.getString(itemBarcodeIndex) + "|" + itemCursor.getString(itemDateTimeIndex) + "\r\n";
                     //tempText = itemHashmaps.get(i).get(InventoryDatabase.BARCODE) + "|" + itemHashmaps.get(i).get(InventoryDatabase.DATE_TIME);
 
                     //Log.v(TAG, itemText);
-                    printStream.println(tempText);
+                    printStream.print(tempText);
 
                     printStream.flush();
                     itemCursor.moveToNext();
