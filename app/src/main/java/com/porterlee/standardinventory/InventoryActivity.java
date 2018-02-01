@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
@@ -75,9 +76,11 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private static final String TAG = InventoryActivity.class.getSimpleName();
     private static final int MAX_ITEM_HISTORY_INCREASE = 25;
     private static final int errorColor = Color.RED;
+    private static final String FIRST_RUN_KEY = "firstrun";
     private SQLiteStatement LAST_ITEM_BARCODE_STATEMENT;
     private SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
     private SQLiteStatement LAST_LOCATION_ID_STATEMENT;
+    private SharedPreferences sharedPreferences;
     private Vibrator vibrator;
     private File outputFile;
     private File databaseFile;
@@ -115,6 +118,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             e.printStackTrace();
         }
 
+        sharedPreferences = getPreferences(MODE_PRIVATE);
+
         vibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
 
         Resources resources = getResources();
@@ -146,9 +151,18 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 databaseLoadError();
             }
         }
+        sharedPreferences.edit().putBoolean(FIRST_RUN_KEY, false).apply();
     }
 
     private void databaseLoadError() {
+        if (sharedPreferences.getBoolean(FIRST_RUN_KEY, true)) {
+            if (databaseFile.delete()) {
+                initialize();
+            } else {
+                finish();
+            }
+            return;
+        }
         AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
         builder.setCancelable(true);
         builder.setTitle("Database Error");
