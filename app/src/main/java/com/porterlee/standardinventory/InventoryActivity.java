@@ -136,37 +136,43 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         } catch (SQLiteCantOpenDatabaseException e) {
             try {
                 //System.out.println(databaseFile.exists());
-                if (databaseFile.renameTo(File.createTempFile("error", ".db", new File(databaseFile.getParent() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY))))
+                if (databaseFile.renameTo(File.createTempFile("error", ".db", new File(databaseFile.getParent() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY)))) {
                     Toast.makeText(this, "There was an error loading the database. It has been archived", Toast.LENGTH_SHORT).show();
+                } else {
+                    databaseLoadError();
+                }
             } catch (IOException e1) {
-
                 e1.printStackTrace();
-                AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
-                builder.setCancelable(true);
-                builder.setTitle("Database Error");
-                builder.setMessage("There was an error loading the last inventory and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will close the app.");
-                builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        finish();
-                    }
-                });
-                builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        if (!databaseFile.delete()) {
-                            Toast.makeText(InventoryActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
-                            finish();
-                            return;
-                        }
-                        Toast.makeText(InventoryActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
-                        initialize();
-                        //db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
-                    }
-                });
-                builder.create().show();
+                databaseLoadError();
             }
         }
+    }
+
+    private void databaseLoadError() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
+        builder.setCancelable(true);
+        builder.setTitle("Database Error");
+        builder.setMessage("There was an error loading the last inventory and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will close the app.");
+        builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                finish();
+            }
+        });
+        builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (!databaseFile.delete()) {
+                    Toast.makeText(InventoryActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
+                Toast.makeText(InventoryActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
+                initialize();
+                //db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
+            }
+        });
+        builder.create().show();
     }
 
     private void initialize() throws SQLiteCantOpenDatabaseException{
