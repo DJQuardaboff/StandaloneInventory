@@ -20,11 +20,10 @@
         android:supportsRtl="true">
 
         <activity
-            android:name="com.porterlee.mobileinventory.InventoryActivity"
+            android:name="InventoryActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
-            android:theme="@style/InventoryTheme"
-            android:windowSoftInputMode="stateAlwaysHidden">
+            android:theme="@style/InventoryTheme">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
