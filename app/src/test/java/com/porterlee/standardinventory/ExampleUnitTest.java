@@ -1,4 +1,4 @@
-package com.porterlee.mobileinventory;
+package com.porterlee.standardinventory;
 
 import org.junit.Test;
 

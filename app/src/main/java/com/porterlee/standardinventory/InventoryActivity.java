@@ -1,4 +1,4 @@
-package com.porterlee.mobileinventory;
+package com.porterlee.standardinventory;
 
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
@@ -55,8 +55,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Random;
 
-import com.porterlee.mobileinventory.InventoryDatabase.ItemTable;
-import com.porterlee.mobileinventory.InventoryDatabase.LocationTable;
+import com.porterlee.standardinventory.InventoryDatabase.ItemTable;
+import com.porterlee.standardinventory.InventoryDatabase.LocationTable;
 
 import device.scanner.DecodeResult;
 import device.scanner.IScannerService;

@@ -1,4 +1,4 @@
-package com.porterlee.mobileinventory;
+package com.porterlee.standardinventory;
 
 public class InventoryDatabase {
     public static final String FILE_NAME = "inventory.db";
