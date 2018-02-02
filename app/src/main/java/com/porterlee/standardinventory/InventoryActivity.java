@@ -541,10 +541,11 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         if (mOptionsMenu != null) {
             MenuItem item = mOptionsMenu.findItem(R.id.action_continuous);
             try {
-                item.setChecked(iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
                 if (iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_AUTO) {
-                    iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
-                }
+                    iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+                    item.setChecked(false);
+                } else
+                    item.setChecked(iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
             } catch (NullPointerException e) {
                 e.printStackTrace();
                 item.setVisible(false);
