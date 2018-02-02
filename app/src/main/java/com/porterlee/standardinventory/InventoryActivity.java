@@ -421,9 +421,11 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             if (iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_AUTO) {
                 iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
             }
-        } catch (RemoteException e) {
+        } catch (NullPointerException e) {
             e.printStackTrace();
             item.setVisible(false);
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
         return true;
     }
