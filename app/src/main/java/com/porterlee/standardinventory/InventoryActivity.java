@@ -177,7 +177,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
         if (sharedPreferences.getBoolean(FIRST_RUN_KEY, true))
             databaseFile.delete();
-
         try {
             initialize();
         } catch (SQLiteCantOpenDatabaseException e) {
@@ -456,8 +455,11 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                         }
                     });
                     builder.create().show();
-                } else
+                } else {
                     Toast.makeText(this, "There are no items in this inventory", Toast.LENGTH_SHORT).show();
+                    db.delete(LocationTable.NAME, null, null);
+                    updateInfo();
+                }
                 return true;
             case R.id.action_save_to_file:
                 if (itemRecyclerAdapter.getItemCount() <= 0) {
