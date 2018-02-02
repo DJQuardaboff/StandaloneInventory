@@ -392,6 +392,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         resultFilter.addAction("device.scanner.USERMSG");
         registerReceiver(resultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null);
         registerReceiver(mScanKeyEventReceiver, new IntentFilter(ScanConst.INTENT_SCANKEY_EVENT));
+        loadCurrentScannerOptions();
     }
 
     @Override
@@ -415,18 +416,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         mOptionsMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.inventory_menu, menu);
-        MenuItem item = menu.findItem(R.id.action_continuous);
-        try {
-            item.setChecked(iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
-            if (iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_AUTO) {
-                iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
-            }
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-            item.setVisible(false);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        loadCurrentScannerOptions();
         return true;
     }
 
@@ -544,6 +534,23 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             //}
             iScanner.aDecodeSetDecodeEnable(1);
             iScanner.aDecodeSetResultType(ScannerService.ResultType.DCD_RESULT_USERMSG);
+        }
+    }
+
+    private void loadCurrentScannerOptions() {
+        if (mOptionsMenu != null) {
+            MenuItem item = mOptionsMenu.findItem(R.id.action_continuous);
+            try {
+                item.setChecked(iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+                if (iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_AUTO) {
+                    iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
+                }
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+                item.setVisible(false);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
     }
 
