@@ -37,6 +37,7 @@ import android.support.v7.widget.RecyclerView;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -61,6 +62,7 @@ import com.porterlee.standardinventory.InventoryDatabase.LocationTable;
 
 import device.scanner.DecodeResult;
 import device.scanner.IScannerService;
+import device.scanner.ScanConst;
 import device.scanner.ScannerService;
 
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
@@ -107,6 +109,45 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private IScannerService iScanner = null;
     private DecodeResult mDecodeResult = new DecodeResult();
 
+    private BroadcastReceiver mScanKeyEventReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (ScanConst.INTENT_SCANKEY_EVENT.equals(intent.getAction())) {
+                KeyEvent event = intent.getParcelableExtra(ScanConst.EXTRA_SCANKEY_EVENT);
+                switch (event.getKeyCode()) {
+                    case ScanConst.KEYCODE_SCAN_FRONT:
+                    case ScanConst.KEYCODE_SCAN_LEFT:
+                        if (iScanner != null) {
+                            try {
+                                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                                    iScanner.aDecodeSetTriggerOn(1);
+                                } else if (event.getAction() == KeyEvent.ACTION_UP) {
+                                    iScanner.aDecodeSetTriggerOn(0);
+                                }
+                            } catch (RemoteException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        break;
+                    case ScanConst.KEYCODE_SCAN_RIGHT:
+                        if (iScanner != null) {
+                            try {
+                                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                                    iScanner.aDecodeSetTriggerOn(1);
+                                } else if (event.getAction() == KeyEvent.ACTION_UP) {
+                                    iScanner.aDecodeSetTriggerOn(0);
+                                }
+                            } catch (RemoteException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        break;
+                    case ScanConst.KEYCODE_SCAN_REAR:
+                }
+            }
+        }
+    };
+
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -135,6 +176,9 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         databaseFile = new File(getFilesDir() + "/" + InventoryDatabase.DIRECTORY + "/" + InventoryDatabase.FILE_NAME);
         //noinspection ResultOfMethodCallIgnored
         databaseFile.mkdirs();
+
+        if (sharedPreferences.getBoolean(FIRST_RUN_KEY, true))
+            databaseFile.delete();
 
         try {
             initialize();
@@ -347,12 +391,14 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         resultFilter.setPriority(0);
         resultFilter.addAction("device.scanner.USERMSG");
         registerReceiver(resultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null);
+        registerReceiver(mScanKeyEventReceiver, new IntentFilter(ScanConst.INTENT_SCANKEY_EVENT));
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         unregisterReceiver(resultReciever);
+        unregisterReceiver(mScanKeyEventReceiver);
     }
 
     @Override
@@ -360,6 +406,16 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         mOptionsMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.inventory_menu, menu);
+        MenuItem item = menu.findItem(R.id.action_continuous);
+        try {
+            item.setChecked(iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+            if (iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_AUTO) {
+                iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            item.setVisible(false);
+        }
         return true;
     }
 
@@ -428,12 +484,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 }
 
                 return true;
-            case R.id.action_preload:
-                //startActivity(InventoryActivity.getPreloadIntent(this));
-                //startActivity(new Intent(this, PreloadLocationsActivity.class));
-                //finish();
-                //Toast.makeText(this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
-                return true;
             case R.id.cancel_save:
                 if (saveTask != null) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -453,6 +503,20 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     postSave();
                 }
                 return true;
+            case R.id.action_continuous:
+                try {
+                    if (!item.isChecked()){
+                        iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+                    } else {
+                        iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
+                    }
+                    item.setChecked(!item.isChecked());
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                    item.setChecked(false);
+                    Toast.makeText(this, "An error occured while changing scanning mode", Toast.LENGTH_SHORT).show();
+                }
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -462,7 +526,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         iScanner = IScannerService.Stub.asInterface(ServiceManager.getService("ScannerService"));
 
         if (iScanner != null) {
-
             iScanner.aDecodeAPIInit();
             //try {
             //Thread.sleep(500);
@@ -511,7 +574,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(false);
         mOptionsMenu.findItem(R.id.cancel_save).setVisible(true);
         mOptionsMenu.findItem(R.id.action_remove_all).setVisible(false);
-        mOptionsMenu.findItem(R.id.action_preload).setVisible(false);
         onPrepareOptionsMenu(mOptionsMenu);
     }
 
@@ -522,7 +584,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
         mOptionsMenu.findItem(R.id.cancel_save).setVisible(false);
         mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
-        mOptionsMenu.findItem(R.id.action_preload).setVisible(true);
         onPrepareOptionsMenu(mOptionsMenu);
     }
 
