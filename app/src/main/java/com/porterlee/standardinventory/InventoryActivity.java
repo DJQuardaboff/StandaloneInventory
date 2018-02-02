@@ -116,37 +116,35 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 KeyEvent event = intent.getParcelableExtra(ScanConst.EXTRA_SCANKEY_EVENT);
                 switch (event.getKeyCode()) {
                     case ScanConst.KEYCODE_SCAN_FRONT:
+                        onScanKeyEvent(event.getAction());
+                        break;
                     case ScanConst.KEYCODE_SCAN_LEFT:
-                        if (iScanner != null) {
-                            try {
-                                if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                                    iScanner.aDecodeSetTriggerOn(1);
-                                } else if (event.getAction() == KeyEvent.ACTION_UP) {
-                                    iScanner.aDecodeSetTriggerOn(0);
-                                }
-                            } catch (RemoteException e) {
-                                e.printStackTrace();
-                            }
-                        }
+                        onScanKeyEvent(event.getAction());
                         break;
                     case ScanConst.KEYCODE_SCAN_RIGHT:
-                        if (iScanner != null) {
-                            try {
-                                if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                                    iScanner.aDecodeSetTriggerOn(1);
-                                } else if (event.getAction() == KeyEvent.ACTION_UP) {
-                                    iScanner.aDecodeSetTriggerOn(0);
-                                }
-                            } catch (RemoteException e) {
-                                e.printStackTrace();
-                            }
-                        }
+                        onScanKeyEvent(event.getAction());
                         break;
                     case ScanConst.KEYCODE_SCAN_REAR:
+                        onScanKeyEvent(event.getAction());
+                        break;
                 }
             }
         }
     };
+
+    private void onScanKeyEvent(int action) {
+        if (iScanner != null) {
+            try {
+                if (action == KeyEvent.ACTION_DOWN) {
+                    iScanner.aDecodeSetTriggerOn(1);
+                } else if (action == KeyEvent.ACTION_UP) {
+                    iScanner.aDecodeSetTriggerOn(0);
+                }
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
