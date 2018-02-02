@@ -1088,7 +1088,14 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 int tempLocation;
                 int itemIndex = 0;
                 //int locationIndex = 0;
-                String tempText;
+
+                //
+                String tempText = BuildConfig.APPLICATION_ID + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
+
+                printStream.print(tempText);
+                printStream.flush();
+                lineIndex++;
+                //
 
                 //for (int i = 0; i < totalItemCount; i++) {
                 while (!itemCursor.isAfterLast()) {
@@ -1161,6 +1168,19 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 itemIndex = 0;
                 //locationIndex = 0;
                 lineIndex = 0;
+
+                //
+                line = br.readLine();
+                tempText = BuildConfig.APPLICATION_ID + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
+                if (!tempText.equals(line)) {
+                    Log.e(TAG, "Error at line " + lineIndex + " of file output\n" +
+                            "Expected String: " + tempText + "\n" +
+                            "String in file: " + line);
+                    return "There was a problem verifying the output file";
+
+                }
+                lineIndex++;
+                //
 
                 //for (int i = 0; i < totalItemCount; i++) {
                 while (!itemCursor.isAfterLast()) {
