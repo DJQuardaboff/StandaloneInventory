@@ -638,9 +638,10 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             return;
         }
 
-        if (isItem(barcode) || isContainer(barcode) || isLocation(barcode)) {
+        if (!isItem(barcode) && !isContainer(barcode) && !isLocation(barcode)) {
             vibrate(300);
             Toast.makeText(this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
+            return;
         }
         //noinspection SqlResolve
         Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.BARCODE + " = ?;", new String[] {String.valueOf(barcode)});
