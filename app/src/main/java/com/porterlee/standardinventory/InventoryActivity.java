@@ -373,8 +373,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         itemRecyclerAnimator.setRemoveDuration(100);
         itemRecyclerView.setItemAnimator(itemRecyclerAnimator);
 
-        //for (int i = 0; i < 10000; i++)
-        //randomScan();
+        //for (int i = 0; i < 1000; i++)
+            //randomScan();
 
         itemRecyclerAdapter.notifyDataSetChanged();
         updateInfo();
