@@ -1101,7 +1101,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 //int locationIndex = 0;
 
                 //
-                String tempText = BuildConfig.APPLICATION_ID + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
+                String tempText = BuildConfig.APPLICATION_ID.split(".")[2] + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
 
                 printStream.print(tempText);
                 printStream.flush();
