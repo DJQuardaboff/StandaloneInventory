@@ -23,7 +23,7 @@
             android:id="@+id/progress_saving"
             android:layout_width="match_parent"
             android:layout_height="4dp"
-            android:max="480"
+            android:max="320"
             app:mpb_useIntrinsicPadding="false"
             app:mpb_progressStyle="horizontal"/>
 
