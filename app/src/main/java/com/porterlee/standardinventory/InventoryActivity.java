@@ -36,6 +36,7 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.util.Pair;
 import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -79,6 +80,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private static final int MAX_ITEM_HISTORY_INCREASE = 25;
     private static final int errorColor = Color.RED;
     private static final String FIRST_RUN_KEY = "firstrun";
+    private SQLiteStatement IS_DUPLICATE_STATEMENT;
     private SQLiteStatement LAST_ITEM_BARCODE_STATEMENT;
     private SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
     private SQLiteStatement LAST_LOCATION_ID_STATEMENT;
@@ -239,6 +241,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         db.execSQL("CREATE TABLE IF NOT EXISTS " + ItemTable.TABLE_CREATION);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + LocationTable.TABLE_CREATION);
 
+        IS_DUPLICATE_STATEMENT = db.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.LOCATION_ID + " IN ( SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " IN ( SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ? ) ) AND " + ItemTable.Keys.BARCODE + " = ?;");
         LAST_ITEM_BARCODE_STATEMENT = db.compileStatement("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1;");
         LAST_LOCATION_BARCODE_STATEMENT = db.compileStatement("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1;");
         LAST_LOCATION_ID_STATEMENT = db.compileStatement("SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1;");
@@ -632,7 +635,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }
 
     private void scanBarcode(String barcode) {
-        String tags = "";
         if (saveTask != null) {
             vibrate(300);
             Toast.makeText(this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
@@ -644,25 +646,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             Toast.makeText(this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
             return;
         }
-        //noinspection SqlResolve
-        Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.BARCODE + " = ?;", new String[] {String.valueOf(barcode)});
 
-        if (cursor.getCount() > 0) {
-            cursor.close();
-            vibrate(300);
-            Toast.makeText(this, "Duplicate " + (isItem(barcode) ? "item" : "container") + " scanned", Toast.LENGTH_SHORT).show();
-            tags = tags.concat(DUPLICATE_BARCODE_TAG);
-        }
-
-        cursor.close();
-
-        if (isItem(barcode)) {
-            addBarcodeItem(barcode, tags);
-        } else if (isContainer(barcode)) {
-            addBarcodeContainer(barcode, tags);
-        } else if (isLocation(barcode)) {
-            addBarcodeLocation(barcode, tags);
-        }
+        new CheckDuplicate().execute(String.valueOf(lastLocationId), barcode);
     }
 
     private void vibrate(long millis) {
@@ -1017,6 +1002,32 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 itemLocationTextView.setVisibility(View.GONE);
                 expandedMenuButton.setVisibility(View.GONE);
             }*/
+        }
+    }
+
+    private class CheckDuplicate extends AsyncTask<String, Void, Pair<String, Boolean>> {
+        protected Pair<String, Boolean> doInBackground(String... strings) {
+            IS_DUPLICATE_STATEMENT.bindAllArgsAsStrings(strings);
+            return new Pair<>(strings[strings.length - 1], IS_DUPLICATE_STATEMENT.simpleQueryForLong() > 0);
+        }
+
+        protected void onPostExecute(Pair<String, Boolean> result) {
+            if (result.second) {
+                Toast.makeText(InventoryActivity.this, "Duplicate item scanned", Toast.LENGTH_SHORT).show();
+                vibrate(300);
+                return;
+            }
+
+            if (isItem(result.first)) {
+                addBarcodeItem(result.first, "");
+            } else if (isContainer(result.first)) {
+                addBarcodeContainer(result.first, "");
+            } else if (isLocation(result.first)) {
+                addBarcodeLocation(result.first, "");
+            } else {
+                vibrate(300);
+                Toast.makeText(InventoryActivity.this, "Barcode \"" + result.first + "\" not recognised", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
