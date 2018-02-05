@@ -543,7 +543,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             try {
                 if (iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_AUTO) {
                     iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
-                    item.setChecked(false);
+                    item.setChecked(true);
                 } else
                     item.setChecked(iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
             } catch (NullPointerException e) {
