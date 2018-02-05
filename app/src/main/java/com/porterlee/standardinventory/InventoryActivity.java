@@ -242,12 +242,12 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
         progressBar = findViewById(R.id.progress_saving);
 
-        this.<Button>findViewById(R.id.random_scan_button).setOnClickListener(new View.OnClickListener() {
+        /*this.<Button>findViewById(R.id.random_scan_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 randomScan();
             }
-        });
+        });*/
 
         itemRecyclerView = findViewById(R.id.item_list_view);
         itemRecyclerView.setHasFixedSize(true);
@@ -608,7 +608,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
     private static final String alphaNumeric = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-    private void randomScan() {
+    /*private void randomScan() {
         Random r = new Random();
         int temp = r.nextInt(10);
         String barcode = (lastLocationId == -1 | temp < 2) ? "V" : (temp < 3 ? "m1" : (temp < 4 ? "M" : (temp < 7 ? "e1" : "E")));
@@ -620,7 +620,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             barcode = barcode.toUpperCase();
 
         scanBarcode(barcode);
-    }
+    }*/
 
     private void scanBarcode(String barcode) {
         if (saveTask != null) {
