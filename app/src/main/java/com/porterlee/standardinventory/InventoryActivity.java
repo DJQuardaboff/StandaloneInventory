@@ -1345,6 +1345,28 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         //archiveDirectory.mkdirs();
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (permissions.length != 0 && grantResults.length != 0) {
+            for (int i = 0; i < permissions.length; i++) {
+                if (permissions[i].equals(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    if (requestCode == 1) {
+                        if (saveTask == null) {
+                            preSave();
+                            archiveDatabase();
+                            (savingToast = Toast.makeText(this, "Saving...", Toast.LENGTH_SHORT)).show();
+                            saveTask = new SaveToFileTask().execute();
+                        } else {
+                            saveTask.cancel(false);
+                            postSave();
+                        }
+                    }
+                }
+            }
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
     private class ScanResultReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
