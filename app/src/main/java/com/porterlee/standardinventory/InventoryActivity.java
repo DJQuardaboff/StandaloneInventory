@@ -79,7 +79,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private static final String TAG = InventoryActivity.class.getSimpleName();
     private static final int MAX_ITEM_HISTORY_INCREASE = 25;
     private static final int errorColor = Color.RED;
-    private static final String FIRST_RUN_KEY = "firstrun";
     private SQLiteStatement IS_DUPLICATE_STATEMENT;
     private SQLiteStatement LAST_ITEM_BARCODE_STATEMENT;
     private SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
@@ -172,13 +171,11 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         archiveDirectory.mkdirs();
         outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "data.txt");
         //noinspection ResultOfMethodCallIgnored
-        outputFile.mkdirs();
+        outputFile.getParentFile().mkdirs();
         databaseFile = new File(getFilesDir() + "/" + InventoryDatabase.DIRECTORY + "/" + InventoryDatabase.FILE_NAME);
         //noinspection ResultOfMethodCallIgnored
-        databaseFile.mkdirs();
+        databaseFile.getParentFile().mkdirs();
 
-        if (sharedPreferences.getBoolean(FIRST_RUN_KEY, true))
-            databaseFile.delete();
         try {
             initialize();
         } catch (SQLiteCantOpenDatabaseException e) {
@@ -194,18 +191,9 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 databaseLoadError();
             }
         }
-        sharedPreferences.edit().putBoolean(FIRST_RUN_KEY, false).apply();
     }
 
     private void databaseLoadError() {
-        if (sharedPreferences.getBoolean(FIRST_RUN_KEY, true)) {
-            if (databaseFile.delete()) {
-                initialize();
-            } else {
-                finish();
-            }
-            return;
-        }
         AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
         builder.setCancelable(false);
         builder.setTitle("Database Error");
