@@ -397,6 +397,14 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         super.onPause();
         unregisterReceiver(resultReciever);
         unregisterReceiver(mScanKeyEventReceiver);
+
+        if (iScanner != null) {
+            try {
+                iScanner.aDecodeSetTriggerOn(0);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
