@@ -1360,6 +1360,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                         scanBarcode(barcode);
                     } else if (!barcode.equals("SCAN AGAIN")){
                         Toast.makeText(InventoryActivity.this, "Malformed barcode: " + barcode, Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(InventoryActivity.this, "Barcode prefix and suffix might not be set", Toast.LENGTH_SHORT).show();
                     }
                     //System.out.println("symName: " + mDecodeResult.symName);
                     //System.out.println("decodeValue: " + mDecodeResult.decodeValue);
