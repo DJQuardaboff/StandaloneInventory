@@ -1088,7 +1088,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 //int locationBarcodeIndex = locationCursor.getColumnIndex(InventoryDatabase.BARCODE);
                 //int locationDateTimeIndex = locationCursor.getColumnIndex(InventoryDatabase.DATE_TIME);
                 //locationCursor.moveToFirst();
-                int totalItemCount = itemCursor.getCount();
+                int totalItemCount = itemCursor.getCount() + 1;
                 //int totalItemCount = itemHashmaps.size();
                 int currentLocationId = -1;
 
