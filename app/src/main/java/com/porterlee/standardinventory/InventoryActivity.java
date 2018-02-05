@@ -479,6 +479,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                         //Toast.makeText(this, "Write external storage permission is required for this", Toast.LENGTH_SHORT).show();
                         ActivityCompat.requestPermissions(this, new String[] {android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                        return true;
                     }
                 }
 
