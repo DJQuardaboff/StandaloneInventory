@@ -297,7 +297,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                                 AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
                                 builder.setCancelable(true);
                                 builder.setTitle("Remove " + (isItem(inventoryItemViewHolder.getItemBarcode()) ? "Item" : "Container"));
-                                builder.setMessage("Are you sure you want to remove this item?");
+                                builder.setMessage("Are you sure you want to remove item \"" + inventoryItemViewHolder.getItemBarcode() + "\"?");
                                 builder.setNegativeButton("no", null);
                                 builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
                                     @Override
