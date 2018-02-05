@@ -637,6 +637,11 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             Toast.makeText(this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        if (isItem(barcode) || isContainer(barcode) || isLocation(barcode)) {
+            vibrate(300);
+            Toast.makeText(this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
+        }
         //noinspection SqlResolve
         Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.BARCODE + " = ?;", new String[] {String.valueOf(barcode)});
 
@@ -655,9 +660,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             addBarcodeContainer(barcode, tags);
         } else if (isLocation(barcode)) {
             addBarcodeLocation(barcode, tags);
-        } else {
-            vibrate(300);
-            Toast.makeText(this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
         }
     }
 
