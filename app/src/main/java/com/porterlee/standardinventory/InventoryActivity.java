@@ -735,7 +735,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
             cursor.close();
             Log.e(TAG, "Error removing item " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory");
-            Toast.makeText(InventoryActivity.this, "Error removing item " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory", Toast.LENGTH_SHORT).show();
+            Toast.makeText(InventoryActivity.this, "Error removing item \"" + barcode +"\" from the inventory", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -804,7 +804,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             }
 
             cursor.close();
-            Log.e(TAG, "Error removing container " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory");
+            Log.e(TAG, "Error removing container \"" + barcode +"\" from the inventory");
             Toast.makeText(InventoryActivity.this, "Error removing container " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory", Toast.LENGTH_SHORT).show();
         }
     }
