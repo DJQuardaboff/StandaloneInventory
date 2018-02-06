@@ -197,7 +197,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
         builder.setCancelable(false);
         builder.setTitle("Database Load Error");
-        builder.setMessage("There was an error loading the last inventory file and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will close the app.");
+        builder.setMessage("There was an error loading the inventory file and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will close the app.");
         builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
