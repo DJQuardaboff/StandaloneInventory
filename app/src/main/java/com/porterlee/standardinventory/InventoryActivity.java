@@ -182,7 +182,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             try {
                 //System.out.println(databaseFile.exists());
                 if (databaseFile.renameTo(File.createTempFile("error", ".db", new File(databaseFile.getParent() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY)))) {
-                    Toast.makeText(this, "There was an error loading the database. It has been archived", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "There was an error loading the inventory file. It has been archived", Toast.LENGTH_SHORT).show();
                 } else {
                     databaseLoadError();
                 }
@@ -196,8 +196,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private void databaseLoadError() {
         AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
         builder.setCancelable(false);
-        builder.setTitle("Database Error");
-        builder.setMessage("There was an error loading the last inventory and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will close the app.");
+        builder.setTitle("Database Load Error");
+        builder.setMessage("There was an error loading the last inventory file and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will close the app.");
         builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -293,7 +293,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                                 builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialog, int which) {
-                                        Log.d(TAG, "Removing " + (isItem(inventoryItemViewHolder.getItemBarcode()) ? "item" : "container") + " at position " + inventoryItemViewHolder.getAdapterPosition() + " with barcode " + inventoryItemViewHolder.getItemBarcode());
+                                        //Log.d(TAG, "Removing " + (isItem(inventoryItemViewHolder.getItemBarcode()) ? "item" : "container") + " at position " + inventoryItemViewHolder.getAdapterPosition() + " with barcode " + inventoryItemViewHolder.getItemBarcode());
 
                                         if (isContainer(inventoryItemViewHolder.getItemBarcode()))
                                             removeBarcodeContainer(inventoryItemViewHolder);
@@ -1076,7 +1076,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 //noinspection ResultOfMethodCallIgnored
                 OUTPUT_PATH.mkdirs();
                 final File TEMP_OUTPUT_FILE = File.createTempFile("tmp", ".txt", OUTPUT_PATH);
-                Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
+                //Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
 
                 //Cursor itemCursor = db.rawQuery("SELECT " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.DATE_TIME + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " ASC;",null);
                 //itemCursor.moveToFirst();
@@ -1279,17 +1279,17 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     Log.e(TAG, "Could not rename temp file to \"" + outputFile.getName() + "\"");
                     return "Could not rename temp file to \"" + outputFile.getName() + "\"";
                 }
-            } catch (FileNotFoundException e){//IOException e) {
+            } catch (FileNotFoundException e){
                 if (lineIndex == -1) {
                     Log.e(TAG, "FileNotFoundException occurred outside of while loops: " + e.getMessage());
                     e.printStackTrace();
-                    return "IOException occurred while saving";
+                    return "FileNotFoundException occurred while saving";
                 } else {
                     Log.e(TAG, "FileNotFoundException occurred at line " + lineIndex + " in file while saving: " + e.getMessage());
                     e.printStackTrace();
-                    return "IOException occurred at line " + lineIndex + " in file while saving";
+                    return "FileNotFoundException occurred at line " + lineIndex + " in file while saving";
                 }
-            } catch (IOException e){//IOException e) {
+            } catch (IOException e){
                 if (lineIndex == -1) {
                     Log.e(TAG, "IOException occurred outside of while loops: " + e.getMessage());
                     e.printStackTrace();
@@ -1301,7 +1301,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 }
             }
 
-            Log.v(TAG, "Saved to: " + outputFile.getAbsolutePath());
+            //Log.v(TAG, "Saved to: " + outputFile.getAbsolutePath());
             return "Saved to file";
         }
 
@@ -1383,7 +1383,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     } else if (!barcode.equals("SCAN AGAIN")){
                         Toast.makeText(InventoryActivity.this, "Malformed barcode: " + barcode, Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(InventoryActivity.this, "Barcode prefix and suffix might not be set", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(InventoryActivity.this, "Barcode prefix and suffix may not be set", Toast.LENGTH_SHORT).show();
                     }
                     //System.out.println("symName: " + mDecodeResult.symName);
                     //System.out.println("decodeValue: " + mDecodeResult.decodeValue);
