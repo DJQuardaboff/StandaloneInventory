@@ -420,7 +420,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     public boolean onOptionsItemSelected(final MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_remove_all:
-                if (itemRecyclerAdapter.getItemCount() > 0) {
+                if (itemRecyclerAdapter.getItemCount() > 0 || lastLocationId != -1) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(this);
                     builder.setCancelable(true);
                     builder.setTitle("Clear Inventory");
@@ -435,11 +435,12 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                             changedSinceLastArchive = true;
 
-                            int deletedCount = db.delete(ItemTable.NAME, "1", null);
+                            //int deletedCount = db.delete(ItemTable.NAME, "1", null);
+                            db.delete(ItemTable.NAME, null, null);
                             db.delete(LocationTable.NAME, null, null);
 
-                            if (itemCount + containerCount != deletedCount)
-                                Toast.makeText(InventoryActivity.this, "Detected inconsistencies with number of items while deleting", Toast.LENGTH_SHORT).show();
+                            //if (itemCount + containerCount != deletedCount)
+                                //Log.v(TAG, "Detected inconsistencies with number of items while deleting");
 
                             itemCount = 0;
                             containerCount = 0;
@@ -456,8 +457,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     builder.create().show();
                 } else {
                     Toast.makeText(this, "There are no items in this inventory", Toast.LENGTH_SHORT).show();
-                    db.delete(LocationTable.NAME, null, null);
-                    updateInfo();
                 }
                 return true;
             case R.id.action_save_to_file:
