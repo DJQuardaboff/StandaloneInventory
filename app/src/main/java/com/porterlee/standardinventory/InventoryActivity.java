@@ -316,27 +316,38 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             @Override
             public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
                 Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.ID + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.DESCRIPTION + ", " + ItemTable.Keys.TAGS + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(position)});
-                cursor.moveToFirst();
+                if (cursor.getCount() > 0) {
+                    cursor.moveToFirst();
 
-                final long itemId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.ID));
-                final long itemLocationId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
-                final String itemBarcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE));
-                final String itemDescription = cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION));
-                final String itemTags = cursor.getString(cursor.getColumnIndex(InventoryDatabase.TAGS));
+                    final long itemId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.ID));
+                    final long itemLocationId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.LOCATION_ID));
+                    final String itemBarcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE));
+                    final String itemDescription = cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION));
+                    final String itemTags = cursor.getString(cursor.getColumnIndex(InventoryDatabase.TAGS));
+                    cursor.close();
 
-                cursor.close();
+                    cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DESCRIPTION + ", " + LocationTable.Keys.TAGS + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ?;", new String[]{String.valueOf(itemLocationId)});
 
-                cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DESCRIPTION + ", " + LocationTable.Keys.TAGS + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ?;", new String[] {String.valueOf(itemLocationId)});
-                cursor.moveToFirst();
+                    if (cursor.getCount() > 0) {
+                        cursor.moveToFirst();
 
-                final String locationBarcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE));
-                final String locationDescription = cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION));
-                final String locationTags = cursor.getString(cursor.getColumnIndex(InventoryDatabase.TAGS));
+                        final String locationBarcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE));
+                        final String locationDescription = cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION));
+                        final String locationTags = cursor.getString(cursor.getColumnIndex(InventoryDatabase.TAGS));
 
-                cursor.close();
+                        cursor.close();
 
-                ((InventoryItemViewHolder) holder).bindViews(itemId, itemBarcode, itemDescription, itemTags, locationBarcode, locationDescription, locationTags);
-
+                        ((InventoryItemViewHolder) holder).bindViews(itemId, itemBarcode, itemDescription, itemTags, locationBarcode, locationDescription, locationTags);
+                    } else {
+                        db.delete(ItemTable.NAME, ItemTable.Keys.ID + " = ?", new String[]{String.valueOf(itemId)});
+                        lastItemBarcode = getLastItemBarcode();
+                        itemCount = getItemCount();
+                        updateInfo();
+                    }
+                } else {
+                    itemCount = getItemCount();
+                    updateInfo();
+                }
             }
 
             @Override
