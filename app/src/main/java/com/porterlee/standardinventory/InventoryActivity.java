@@ -416,6 +416,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             saveTask.cancel(false);
             saveTask = null;
         }
+        db.close();
     }
 
     @Override
