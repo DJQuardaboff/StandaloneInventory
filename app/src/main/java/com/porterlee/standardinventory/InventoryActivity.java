@@ -255,11 +255,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         itemRecyclerAdapter = new RecyclerView.Adapter() {
             @Override
             public long getItemId(int i) {
-                Cursor cursor = db.rawQuery("SELECT " + ItemTable.Keys.ID + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(i)});
-                cursor.moveToFirst();
-                long id = cursor.getLong(cursor.getColumnIndex(InventoryDatabase.ID));
-                cursor.close();
-                return id;
+                return ((InventoryItemViewHolder) itemRecyclerView.findViewHolderForAdapterPosition(i)).getId();
             }
 
             @Override
