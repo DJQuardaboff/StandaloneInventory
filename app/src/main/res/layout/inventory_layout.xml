@@ -173,8 +173,6 @@
         android:id="@+id/item_list_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:paddingBottom="50dp"
-        android:clipToPadding="false"
         android:layoutAnimation="@anim/layout_animation"
         app:layout_constraintTop_toBottomOf="@+id/inventory_column_labels"
         app:layout_constraintStart_toStartOf="parent"
