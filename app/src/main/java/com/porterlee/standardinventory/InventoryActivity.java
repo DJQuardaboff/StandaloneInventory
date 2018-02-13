@@ -444,8 +444,14 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                             changedSinceLastArchive = true;
 
                             //int deletedCount = db.delete(ItemTable.NAME, "1", null);
-                            db.delete(ItemTable.NAME, null, null);
-                            db.delete(LocationTable.NAME, null, null);
+                            //db.delete(ItemTable.NAME, null, null);
+                            //db.delete(LocationTable.NAME, null, null);
+
+                            db.execSQL("DROP TABLE IF EXISTS " + ItemTable.NAME);
+                            db.execSQL("CREATE TABLE " + ItemTable.TABLE_CREATION);
+
+                            db.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
+                            db.execSQL("CREATE TABLE " + LocationTable.TABLE_CREATION);
 
                             //if (itemCount + containerCount != deletedCount)
                                 //Log.v(TAG, "Detected inconsistencies with number of items while deleting");
