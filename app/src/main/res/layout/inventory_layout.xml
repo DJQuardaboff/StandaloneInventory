@@ -2,191 +2,240 @@
 <android.support.constraint.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/inventory_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center_horizontal"
-    android:orientation="vertical"
-    tools:context="com.porterlee.standardinventory.InventoryActivity">
+    android:orientation="vertical">
 
-    <LinearLayout
-        android:id="@+id/info_layout"
+    <com.porterlee.standardinventory.SelectableRecyclerView
+        android:id="@+id/location_list_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:paddingTop="5dp"
+        android:paddingStart="3dp"
+        android:paddingEnd="3dp"
+        android:background="@drawable/location_list_rounded"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/guideline"/>
+
+    <TextView
+        android:id="@+id/current_location_title"
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_width="match_parent"
-        android:paddingBottom="2dp"
-        android:background="@color/colorPrimary"
-        android:orientation="vertical">
-
-        <me.zhanghai.android.materialprogressbar.MaterialProgressBar
-            style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal"
-            android:id="@+id/progress_saving"
-            android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:max="320"
-            app:mpb_useIntrinsicPadding="false"
-            app:mpb_progressStyle="horizontal"/>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="@string/current_location_title_string"
-                android:paddingEnd="8dp"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:textColor="#FFFFFF"
-                tools:ignore="RtlSymmetry"/>
-
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:id="@+id/current_location"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="start"
-                android:textColor="#FFFFFF"/>
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="@string/last_scan_title_string"
-                android:paddingEnd="8dp"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:textColor="#FFFFFF"
-                tools:ignore="RtlSymmetry"/>
-
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:id="@+id/last_scan"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="start"
-                android:textColor="#FFFFFF"/>
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="@string/total_items_title_string"
-                android:paddingEnd="8dp"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:textColor="#FFFFFF"
-                tools:ignore="RtlSymmetry"/>
-
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:id="@+id/total_items"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="start"
-                android:textColor="#FFFFFF"/>
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="@string/total_containers_title_string"
-                android:paddingEnd="8dp"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:textColor="#FFFFFF"
-                tools:ignore="RtlSymmetry"/>
-
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:id="@+id/total_containers"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="start"
-                android:textColor="#FFFFFF"/>
-
-        </LinearLayout>
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/inventory_column_labels"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:text="@string/current_location_title_string"
         android:paddingTop="2dp"
-        android:paddingBottom="2dp"
-        android:background="#DF3F51B5"
+        android:paddingStart="0dp"
+        android:paddingEnd="8dp"
+        android:layout_weight="1"
         android:gravity="end"
-        app:layout_constraintTop_toBottomOf="@id/info_layout">
+        android:textColor="#FFFFFF"
+        android:background="@color/colorPrimary"
+        app:layout_constraintTop_toBottomOf="@+id/location_list_view"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/current_location"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
 
-        <TextView
-            style="@style/Base.TextAppearance.AppCompat.Small"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/inventory_barcodes_column_title"
-            android:layout_marginEnd="5dp"
-            android:textColor="#7FFFFFFF"
-            android:layout_gravity="center"
-            android:gravity="center"
-            android:layout_weight="1"/>
+    <TextView
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:id="@+id/current_location"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="start"
+        android:ellipsize="middle"
+        android:scrollHorizontally="true"
+        android:singleLine="true"
+        android:textColor="#FFFFFF"
+        android:background="@color/colorPrimary"
+        app:layout_constraintTop_toTopOf="@+id/current_location_title"
+        app:layout_constraintBottom_toBottomOf="@+id/current_location_title"
+        app:layout_constraintStart_toEndOf="@+id/current_location_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
 
-        <TextView
-            style="@style/Base.TextAppearance.AppCompat.Small"
-            android:layout_width="100dp"
-            android:layout_height="wrap_content"
-            android:text="@string/inventory_location_column_title"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="37dp"
-            android:textColor="#7FFFFFFF"
-            android:gravity="center"/>
+    <TextView
+        android:id="@+id/last_scan_title"
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/last_scan_title_string"
+        android:paddingStart="0dp"
+        android:paddingEnd="8dp"
+        android:layout_weight="1"
+        android:gravity="end"
+        android:textColor="#FFFFFF"
+        android:background="@color/colorPrimary"
+        app:layout_constraintTop_toBottomOf="@+id/current_location_title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/last_scan"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
 
-    </LinearLayout>
+    <TextView
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:id="@+id/last_scan"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:ellipsize="middle"
+        android:scrollHorizontally="true"
+        android:singleLine="true"
+        android:gravity="start"
+        android:textColor="#FFFFFF"
+        android:background="@color/colorPrimary"
+        app:layout_constraintTop_toTopOf="@id/last_scan_title"
+        app:layout_constraintBottom_toBottomOf="@+id/last_scan_title"
+        app:layout_constraintStart_toEndOf="@+id/last_scan_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
 
-    <android.support.v7.widget.RecyclerView
+    <TextView
+        android:id="@+id/total_items_title"
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/total_items_title_string"
+        android:paddingStart="0dp"
+        android:paddingEnd="8dp"
+        android:layout_weight="1"
+        android:gravity="end"
+        android:textColor="#FFFFFF"
+        android:background="@color/colorPrimary"
+        app:layout_constraintTop_toBottomOf="@+id/last_scan_title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/total_items"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
+
+    <TextView
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:id="@+id/total_items"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="start"
+        android:textColor="#FFFFFF"
+        android:background="@color/colorPrimary"
+        app:layout_constraintTop_toTopOf="@+id/total_items_title"
+        app:layout_constraintBottom_toBottomOf="@+id/total_items_title"
+        app:layout_constraintStart_toEndOf="@+id/total_items_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
+
+    <TextView
+        android:id="@+id/total_containers_title"
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/total_containers_title_string"
+        android:paddingStart="0dp"
+        android:paddingEnd="8dp"
+        android:layout_weight="1"
+        android:gravity="end"
+        android:visibility="gone"
+        android:textColor="#FFFFFF"
+        android:background="@color/colorPrimary"
+        app:layout_constraintTop_toBottomOf="@+id/total_items_title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/total_containers"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
+
+    <TextView
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:id="@+id/total_containers"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="start"
+        android:textColor="#FFFFFF"
+        android:background="@color/colorPrimary"
+        app:layout_constraintTop_toTopOf="@+id/total_containers_title"
+        app:layout_constraintBottom_toBottomOf="@+id/total_containers_title"
+        app:layout_constraintStart_toEndOf="@+id/total_containers_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
+
+    <TextView
+        android:id="@+id/barcode_column_title"
+        style="@style/Base.TextAppearance.AppCompat.Small"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/inventory_barcodes_column_title"
+        android:paddingStart="0dp"
+        android:paddingEnd="5dp"
+        android:textColor="#7FFFFFFF"
+        android:background="#5A6AC0"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@+id/total_containers_title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/location_column_title"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
+
+    <TextView
+        android:id="@+id/location_column_title"
+        style="@style/Base.TextAppearance.AppCompat.Small"
+        android:layout_width="142dp"
+        android:layout_height="0dp"
+        android:text="@string/inventory_location_column_title"
+        android:paddingStart="5dp"
+        android:paddingEnd="37dp"
+        android:textColor="#7FFFFFFF"
+        android:background="#5A6AC0"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="@+id/barcode_column_title"
+        app:layout_constraintBottom_toBottomOf="@+id/barcode_column_title"
+        app:layout_constraintStart_toEndOf="@+id/barcode_column_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
+
+    <com.porterlee.standardinventory.SelectableRecyclerView
         android:id="@+id/item_list_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layoutAnimation="@anim/layout_animation"
-        app:layout_constraintTop_toBottomOf="@+id/inventory_column_labels"
+        app:layout_constraintTop_toBottomOf="@+id/barcode_column_title"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
+
+    <me.zhanghai.android.materialprogressbar.MaterialProgressBar
+        style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal"
+        android:id="@+id/progress_saving"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:max="320"
+        app:mpb_useIntrinsicPadding="false"
+        app:mpb_progressStyle="horizontal"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <!--Button
         android:id="@+id/random_scan_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Random Scan"
-        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/item_list_view"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/-->
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent=".25"/>
 
 </android.support.constraint.ConstraintLayout>
