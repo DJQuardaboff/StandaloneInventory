@@ -73,6 +73,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
     private static final String TAG = InventoryActivity.class.getSimpleName();
     private static final int errorColor = Color.RED;
+    private String previousPrefix = "";
+    private String previousPostfix = "";
     private SQLiteStatement IS_DUPLICATE_STATEMENT;
     private SQLiteStatement LAST_ITEM_BARCODE_STATEMENT;
     private SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
@@ -337,6 +339,18 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         registerReceiver(resultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null);
         registerReceiver(mScanKeyEventReceiver, new IntentFilter(ScanConst.INTENT_SCANKEY_EVENT));
         loadCurrentScannerOptions();
+
+        if (iScanner != null) {
+            try {
+                iScanner.aDecodeSetTriggerOn(0);
+                previousPrefix = iScanner.aDecodeGetPrefix();
+                previousPostfix = iScanner.aDecodeGetPostfix();
+                iScanner.aDecodeSetPrefix("");
+                iScanner.aDecodeSetPostfix("");
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
@@ -348,6 +362,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         if (iScanner != null) {
             try {
                 iScanner.aDecodeSetTriggerOn(0);
+                iScanner.aDecodeSetPrefix(previousPrefix);
+                iScanner.aDecodeSetPostfix(previousPostfix);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -361,6 +377,17 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             saveTask.cancel(false);
             saveTask = null;
         }
+
+        if (iScanner != null) {
+            try {
+                iScanner.aDecodeSetTriggerOn(0);
+                iScanner.aDecodeSetPrefix(previousPrefix);
+                iScanner.aDecodeSetPostfix(previousPostfix);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+
         if (mDatabase != null)
             mDatabase.close();
     }
@@ -1196,7 +1223,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             if (iScanner != null) {
                 try {
                     iScanner.aDecodeGetResult(mDecodeResult);
-                    String barcode = mDecodeResult.decodeValue.replaceAll("(^>>)|(<<$)", "");
+                    String barcode = mDecodeResult.decodeValue;
 
                     if (barcode.equals("")) {
                         Toast.makeText(InventoryActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
