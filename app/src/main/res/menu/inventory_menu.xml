@@ -24,10 +24,10 @@
         android:title="@string/clear_inventory"
         app:showAsAction="never" />
 
-    <item
+    <!--item
         android:id="@+id/action_continuous"
         android:checkable="true"
         app:showAsAction="never"
-        android:title="@string/continuous_mode_title"/>
+        android:title="@string/continuous_mode_title"/-->
 
 </menu>

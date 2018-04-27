@@ -338,11 +338,15 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         resultFilter.addAction("device.scanner.USERMSG");
         registerReceiver(resultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null);
         registerReceiver(mScanKeyEventReceiver, new IntentFilter(ScanConst.INTENT_SCANKEY_EVENT));
-        loadCurrentScannerOptions();
+        //loadCurrentScannerOptions();
 
         if (iScanner != null) {
             try {
                 iScanner.aDecodeSetTriggerOn(0);
+
+                //ensure continuous is never on
+                iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
+
                 previousPrefix = iScanner.aDecodeGetPrefix();
                 previousPostfix = iScanner.aDecodeGetPostfix();
                 iScanner.aDecodeSetPrefix("");
@@ -397,7 +401,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         mOptionsMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.inventory_menu, menu);
-        loadCurrentScannerOptions();
+        //loadCurrentScannerOptions();
         return true;
     }
 
@@ -494,7 +498,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     postSave();
                 }
                 return true;
-            case R.id.action_continuous:
+            /*case R.id.action_continuous:
                 try {
                     if (!item.isChecked()){
                         iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
@@ -507,7 +511,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     item.setChecked(false);
                     Toast.makeText(this, "An error occured while changing scanning mode", Toast.LENGTH_SHORT).show();
                 }
-                return true;
+                return true;*/
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -526,7 +530,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             iScanner.aDecodeSetResultType(ScannerService.ResultType.DCD_RESULT_USERMSG);
         }
     }
-
+    /*
     private void loadCurrentScannerOptions() {
         if (mOptionsMenu != null) {
             MenuItem item = mOptionsMenu.findItem(R.id.action_continuous);
@@ -544,7 +548,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             }
         }
     }
-
+    */
     private int getItemCount() {
         Cursor cursor = mDatabase.rawQuery("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + IS_LIKE_ITEM_CLAUSE + " AND " + ItemTable.Keys.LOCATION_ID + " = ?", new String[] { String.valueOf(lastLocationId) });
         cursor.moveToFirst();
@@ -898,13 +902,13 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             super(itemView);
             textView = itemView.findViewById(R.id.location_text_view);
             background = itemView.findViewById(R.id.location_background);
-            itemView.setClickable(true);
+            /*itemView.setClickable(true);
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     addBarcodeLocation(barcode, "");
                 }
-            });
+            });*/
         }
 
         private void bindViews(Cursor cursor, int selectedPosition) {
