@@ -4,7 +4,9 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/StandaloneInventory.iml" filepath="$PROJECT_DIR$/StandaloneInventory.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/device.scanner/device.scanner.iml" filepath="$PROJECT_DIR$/device.scanner/device.scanner.iml" />
+      <module fileurl="file://$PROJECT_DIR$/plc_scanners-janam_XM5Release-1.1/plc_scanners-janam_XM5Release-1.1.iml" filepath="$PROJECT_DIR$/plc_scanners-janam_XM5Release-1.1/plc_scanners-janam_XM5Release-1.1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release-1.1/plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release-1.1.iml" filepath="$PROJECT_DIR$/plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release-1.1/plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release-1.1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/plc_scanners-zebra_emdk_symbol_26Release-1.1/plc_scanners-zebra_emdk_symbol_26Release-1.1.iml" filepath="$PROJECT_DIR$/plc_scanners-zebra_emdk_symbol_26Release-1.1/plc_scanners-zebra_emdk_symbol_26Release-1.1.iml" />
     </modules>
   </component>
 </project>

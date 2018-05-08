@@ -18,4 +18,6 @@
     <string name="inventory_location_column_title">Location</string>
     <string name="total_locations_title_string">Locations:</string>
     <string name="continuous_mode_title">Continuous mode</string>
+    <string name="action_yes">Yes</string>
+    <string name="action_no">No</string>
 </resources>
