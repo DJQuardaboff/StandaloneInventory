@@ -76,7 +76,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        AbstractScanner.setActivity(this);
+        getScanner().setActivity(this);
         
         if (!getScanner().init()) {
             finish();
@@ -84,21 +84,21 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             return;
         }
 
-        AbstractScanner.setOnBarcodeScannedListener(barcode -> {
+        getScanner().setOnBarcodeScannedListener(barcode -> {
             if (saveTask != null) {
-                AbstractScanner.onScanComplete(false);
+                getScanner().onScanComplete(false);
                 Toast.makeText(InventoryActivity.this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
                 return;
             }
 
             if (barcode.equals("")) {
-                AbstractScanner.onScanComplete(false);
+                getScanner().onScanComplete(false);
                 Toast.makeText(InventoryActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
                 return;
             }
 
             if (!isItem(barcode) && !isContainer(barcode) && !isLocation(barcode)) {
-                AbstractScanner.onScanComplete(false);
+                getScanner().onScanComplete(false);
                 Toast.makeText(InventoryActivity.this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -108,7 +108,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             final boolean isDuplicate = IS_DUPLICATE_STATEMENT.simpleQueryForLong() > 0;
 
             if (isDuplicate) {
-                AbstractScanner.onScanComplete(false);
+                getScanner().onScanComplete(false);
                 getScanner().disable();
                 new AlertDialog.Builder(InventoryActivity.this)
                         .setCancelable(false)
@@ -122,13 +122,13 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             }
 
             if (isItem(barcode) || isContainer(barcode)) {
-                AbstractScanner.onScanComplete(true);
+                getScanner().onScanComplete(true);
                 addItem(barcode);
             } else if (isLocation(barcode)) {
-                AbstractScanner.onScanComplete(true);
+                getScanner().onScanComplete(true);
                 addBarcodeLocation(barcode);
             } else {
-                AbstractScanner.onScanComplete(false);
+                getScanner().onScanComplete(false);
                 Toast.makeText(InventoryActivity.this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
             }
         });
@@ -303,8 +303,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
     @Override
     protected void onPause() {
-        super.onPause();
         getScanner().onPause();
+        super.onPause();
     }
 
     @Override
@@ -315,16 +315,14 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         if (saveTask != null) {
             saveTask.cancel(false);
             saveTask = null;
         }
-
-        getScanner().onDestroy();
-
         if (mDatabase != null)
             mDatabase.close();
+        getScanner().onDestroy();
+        super.onDestroy();
     }
 
     @Override
@@ -332,8 +330,12 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         mOptionsMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.inventory_menu, menu);
-        //loadCurrentScannerOptions();
-        return true;
+        return super.onCreateOptionsMenu(menu) | getScanner().onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        return super.onPrepareOptionsMenu(menu) | getScanner().onPrepareOptionsMenu(menu);
     }
 
     @Override
@@ -433,7 +435,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 }
                 return true;*/
             default:
-                return super.onOptionsItemSelected(item);
+                return super.onOptionsItemSelected(item) | getScanner().onOptionsItemSelected(item);
         }
     }
     /*
