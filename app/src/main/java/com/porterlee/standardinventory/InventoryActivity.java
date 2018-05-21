@@ -1,6 +1,7 @@
 package com.porterlee.standardinventory;
 
 import android.content.ContentValues;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -84,52 +85,63 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             return;
         }
 
-        getScanner().setOnBarcodeScannedListener(barcode -> {
-            if (saveTask != null) {
-                getScanner().onScanComplete(false);
-                Toast.makeText(InventoryActivity.this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
-                return;
-            }
+        getScanner().setOnBarcodeScannedListener(new AbstractScanner.OnBarcodeScannedListener() {
+            @Override
+            public void onBarcodeScanned(final String barcode) {
+                if (saveTask != null) {
+                    getScanner().onScanComplete(false);
+                    Toast.makeText(InventoryActivity.this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-            if (barcode.equals("")) {
-                getScanner().onScanComplete(false);
-                Toast.makeText(InventoryActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
-                return;
-            }
+                if (barcode.equals("")) {
+                    getScanner().onScanComplete(false);
+                    Toast.makeText(InventoryActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-            if (!isItem(barcode) && !isContainer(barcode) && !isLocation(barcode)) {
-                getScanner().onScanComplete(false);
-                Toast.makeText(InventoryActivity.this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
-                return;
-            }
+                if (!isItem(barcode) && !isContainer(barcode) && !isLocation(barcode)) {
+                    getScanner().onScanComplete(false);
+                    Toast.makeText(InventoryActivity.this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-            IS_DUPLICATE_STATEMENT.bindLong(1, lastLocationId);
-            IS_DUPLICATE_STATEMENT.bindString(2, barcode);
-            final boolean isDuplicate = IS_DUPLICATE_STATEMENT.simpleQueryForLong() > 0;
+                IS_DUPLICATE_STATEMENT.bindLong(1, lastLocationId);
+                IS_DUPLICATE_STATEMENT.bindString(2, barcode);
+                final boolean isDuplicate = IS_DUPLICATE_STATEMENT.simpleQueryForLong() > 0;
 
-            if (isDuplicate) {
-                getScanner().onScanComplete(false);
-                getScanner().disable();
-                new AlertDialog.Builder(InventoryActivity.this)
-                        .setCancelable(false)
-                        .setTitle("Duplicate item")
-                        .setMessage("An item with the same barcode was already scanned, would you still like to add it to the list?")
-                        .setNegativeButton(R.string.action_no, null)
-                        .setPositiveButton(R.string.action_yes, (dialog, which) -> addItem(barcode))
-                        .setOnDismissListener(dialog -> getScanner().enable())
-                        .create().show();
-                return;
-            }
+                if (isDuplicate) {
+                    getScanner().onScanComplete(false);
+                    getScanner().setIsEnabled(false);
+                    new AlertDialog.Builder(InventoryActivity.this)
+                            .setCancelable(false)
+                            .setTitle("Duplicate item")
+                            .setMessage("An item with the same barcode was already scanned, would you still like to add it to the list?")
+                            .setNegativeButton(R.string.action_no, null)
+                            .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    addItem(barcode);
+                                }
+                            }).setOnDismissListener(new DialogInterface.OnDismissListener() {
+                                @Override
+                                public void onDismiss(DialogInterface dialog) {
+                                    getScanner().setIsEnabled(true);
+                                }
+                            }).create().show();
+                    return;
+                }
 
-            if (isItem(barcode) || isContainer(barcode)) {
-                getScanner().onScanComplete(true);
-                addItem(barcode);
-            } else if (isLocation(barcode)) {
-                getScanner().onScanComplete(true);
-                addBarcodeLocation(barcode);
-            } else {
-                getScanner().onScanComplete(false);
-                Toast.makeText(InventoryActivity.this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
+                if (isItem(barcode) || isContainer(barcode)) {
+                    getScanner().onScanComplete(true);
+                    addItem(barcode);
+                } else if (isLocation(barcode)) {
+                    getScanner().onScanComplete(true);
+                    addBarcodeLocation(barcode);
+                } else {
+                    getScanner().onScanComplete(false);
+                    Toast.makeText(InventoryActivity.this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -175,22 +187,34 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }
 
     private void databaseLoadError() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
-        builder.setCancelable(false);
-        builder.setTitle("Database Load Error");
-        builder.setMessage("There was an error loading the inventory file and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will close the app.");
-        builder.setNegativeButton(R.string.action_no, (dialog, which) -> finish());
-        builder.setPositiveButton(R.string.action_yes, (dialog, which) -> {
-            if (!databaseFile.delete()) {
-                Toast.makeText(InventoryActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
-                finish();
-                return;
-            }
-            Toast.makeText(InventoryActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
-            initialize();
-            //mDatabase = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
-        });
-        builder.create().show();
+        getScanner().setIsEnabled(false);
+        new AlertDialog.Builder(InventoryActivity.this)
+                .setCancelable(false)
+                .setTitle("Database Load Error")
+                .setMessage("There was an error loading the inventory file and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will close the app.")
+                .setNegativeButton(R.string.action_no, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                }).setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (!databaseFile.delete()) {
+                            Toast.makeText(InventoryActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
+                            finish();
+                            return;
+                        }
+                        Toast.makeText(InventoryActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
+                        initialize();
+                        //mDatabase = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
+                    }
+                }).setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        getScanner().setIsEnabled(true);
+                    }
+                }).create().show();
     }
 
     private void initialize() throws SQLiteCantOpenDatabaseException{
@@ -343,38 +367,46 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         switch (item.getItemId()) {
             case R.id.action_remove_all:
                 if (TOTAL_ITEM_COUNT.simpleQueryForLong() > 0 || TOTAL_LOCATION_COUNT.simpleQueryForLong() > 0) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                    builder.setCancelable(true);
-                    builder.setTitle("Clear Inventory");
-                    builder.setMessage("Are you sure you want to clear this inventory?");
-                    builder.setNegativeButton(R.string.action_no, null);
-                    builder.setPositiveButton(R.string.action_yes, (dialog, which) -> {
-                        if (saveTask != null) {
-                            return;
-                        }
+                    getScanner().setIsEnabled(false);
+                    new AlertDialog.Builder(this)
+                            .setCancelable(true)
+                            .setTitle("Clear Inventory")
+                            .setMessage("Are you sure you want to clear this inventory?")
+                            .setNegativeButton(R.string.action_no, null)
+                            .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    if (saveTask != null) {
+                                        return;
+                                    }
 
-                        changedSinceLastArchive = true;
+                                    changedSinceLastArchive = true;
 
-                        //int deletedCount = mDatabase.delete(ItemTable.NAME, "1", null);
-                        //mDatabase.delete(ItemTable.NAME, null, null);
-                        //mDatabase.delete(LocationTable.NAME, null, null);
+                                    //int deletedCount = mDatabase.delete(ItemTable.NAME, "1", null);
+                                    //mDatabase.delete(ItemTable.NAME, null, null);
+                                    //mDatabase.delete(LocationTable.NAME, null, null);
 
-                        mDatabase.execSQL("DROP TABLE IF EXISTS " + ItemTable.NAME);
-                        ItemTable.create(mDatabase);
+                                    mDatabase.execSQL("DROP TABLE IF EXISTS " + ItemTable.NAME);
+                                    ItemTable.create(mDatabase);
 
-                        mDatabase.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
-                        LocationTable.create(mDatabase);
+                                    mDatabase.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
+                                    LocationTable.create(mDatabase);
 
-                        lastLocationId = -1;
-                        lastLocationBarcode = "";
-                        lastItemBarcode = "";
+                                    lastLocationId = -1;
+                                    lastLocationBarcode = "";
+                                    lastItemBarcode = "";
 
-                        itemRecyclerAdapter.changeCursor(null);
-                        locationRecyclerAdapter.changeCursor(null);
-                        updateInfo();
-                        Toast.makeText(InventoryActivity.this, "Inventory cleared", Toast.LENGTH_SHORT).show();
-                    });
-                    builder.create().show();
+                                    itemRecyclerAdapter.changeCursor(null);
+                                    locationRecyclerAdapter.changeCursor(null);
+                                    updateInfo();
+                                    Toast.makeText(InventoryActivity.this, "Inventory cleared", Toast.LENGTH_SHORT).show();
+                                }
+                            }).setOnDismissListener(new DialogInterface.OnDismissListener() {
+                                @Override
+                                public void onDismiss(DialogInterface dialog) {
+                                    getScanner().setIsEnabled(true);
+                                }
+                            }).create().show();
                 } else {
                     Toast.makeText(this, "There are no items in this inventory", Toast.LENGTH_SHORT).show();
                 }
@@ -406,16 +438,25 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 return true;
             case R.id.cancel_save:
                 if (saveTask != null) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                    builder.setCancelable(true);
-                    builder.setTitle("Cancel Save");
-                    builder.setMessage("Are you sure you want to stop saving this file?");
-                    builder.setNegativeButton(R.string.action_no, null);
-                    builder.setPositiveButton(R.string.action_yes, (dialog, which) -> {
-                        if (saveTask != null && !saveTask.isCancelled())
-                            saveTask.cancel(false);
-                    });
-                    builder.create().show();
+                    getScanner().setIsEnabled(false);
+                    new AlertDialog.Builder(this)
+                            .setCancelable(true)
+                            .setTitle("Cancel Save")
+                            .setMessage("Are you sure you want to stop saving this file?")
+                            .setNegativeButton(R.string.action_no, null)
+                            .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    if (saveTask != null && !saveTask.isCancelled()) {
+                                        saveTask.cancel(false);
+                                    }
+                                }
+                            }).setOnDismissListener(new DialogInterface.OnDismissListener() {
+                                @Override
+                                public void onDismiss(DialogInterface dialog) {
+                                    getScanner().setIsEnabled(true);
+                                }
+                            }).create().show();
                 } else {
                     postSave();
                 }
@@ -699,26 +740,42 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             super(itemView);
             barcodeTextView = itemView.findViewById(R.id.barcode_text_view);
             expandedMenuButton = itemView.findViewById(R.id.menu_button);
-            expandedMenuButton.setOnClickListener(view -> {
-                PopupMenu popup = new PopupMenu(InventoryActivity.this, view);
-                MenuInflater inflater = popup.getMenuInflater();
-                inflater.inflate(R.menu.inventory_item_popup_menu, popup.getMenu());
-                popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(menuItem -> {
-                    if (saveTask != null) {
-                        Toast.makeText(InventoryActivity.this, "Cannot edit inventory while saving", Toast.LENGTH_SHORT).show();
-                        return true;
-                    }
-                    AlertDialog.Builder builder = new AlertDialog.Builder(InventoryActivity.this);
-                    builder.setCancelable(true);
-                    builder.setTitle("Remove " + (isItem(barcode) ? "Item" : "Container"));
-                    builder.setMessage(String.format("Are you sure you want to remove item \"%s\"?", barcode));
-                    builder.setNegativeButton(R.string.action_no, null);
-                    builder.setPositiveButton(R.string.action_yes, (dialog, which) -> removeItem(InventoryItemViewHolder.this));
-                    builder.create().show();
+            expandedMenuButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    PopupMenu popup = new PopupMenu(InventoryActivity.this, view);
+                    MenuInflater inflater = popup.getMenuInflater();
+                    inflater.inflate(R.menu.inventory_item_popup_menu, popup.getMenu());
+                    popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                        @Override
+                        public boolean onMenuItemClick(MenuItem item) {
+                            if (saveTask != null) {
+                                Toast.makeText(InventoryActivity.this, "Cannot edit inventory while saving", Toast.LENGTH_SHORT).show();
+                                return true;
+                            }
+                            getScanner().setIsEnabled(false);
+                            new AlertDialog.Builder(InventoryActivity.this)
+                                    .setCancelable(true)
+                                    .setTitle("Remove " + (isItem(barcode) ? "Item" : "Container"))
+                                    .setMessage(String.format("Are you sure you want to remove item \"%s\"?", barcode))
+                                    .setNegativeButton(R.string.action_no, null)
+                                    .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            removeItem(InventoryItemViewHolder.this);
+                                        }
+                                    }).setOnDismissListener(new DialogInterface.OnDismissListener() {
+                                        @Override
+                                        public void onDismiss(DialogInterface dialog) {
+                                            getScanner().setIsEnabled(true);
+                                        }
+                                    }).create().show();
 
-                    return true;
-                });
-                popup.show();
+                            return true;
+                        }
+                    });
+                    popup.show();
+                }
             });
         }
 

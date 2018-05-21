@@ -41,9 +41,8 @@ android {
             outputFileName = "standard_inventory-${variant.name}-${variant.versionName}.apk"
         }
     }
-    compileOptions {
-        targetCompatibility JavaVersion.VERSION_1_8
-        sourceCompatibility JavaVersion.VERSION_1_8
+    configurations.all {
+        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
     }
 }
 
