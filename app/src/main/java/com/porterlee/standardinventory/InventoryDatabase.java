@@ -50,6 +50,11 @@ public class InventoryDatabase {
             public static final String TAGS = NAME + '.' + InventoryDatabase.TAGS;
             public static final String DATE_TIME = NAME + '.' + InventoryDatabase.DATE_TIME;
         }
+
+        public class Tags {
+            public static final  String WARNING = "W";
+            public static final  String ERROR = "E";
+        }
     }
 
     /*public class PicturesTable {

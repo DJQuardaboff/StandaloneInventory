@@ -4,15 +4,16 @@ import android.database.Cursor;
 import android.database.DataSetObserver;
 import android.support.v7.widget.RecyclerView;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 public abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
-
     private volatile Cursor mCursor;
-
     private boolean mDataValid;
-
     private int mRowIdColumn;
-
     private DataSetObserver mDataSetObserver;
+    private HashMap<String, Integer> mBarcodeToIndexMap = new HashMap<>();
+    private ArrayList<String> mDuplicateBarcodes = new ArrayList<>();
 
     public CursorRecyclerViewAdapter(Cursor cursor) {
         mCursor = cursor;
@@ -93,6 +94,7 @@ public abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHold
             }
             mRowIdColumn = newCursor.getColumnIndexOrThrow("_id");
             mDataValid = true;
+            remapCursor();
             notifyDataSetChanged();
         } else {
             mRowIdColumn = -1;
@@ -101,6 +103,30 @@ public abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHold
             //There is no notifyDataSetInvalidated() method in RecyclerView.Adapter
         }
         return oldCursor;
+    }
+
+    private void remapCursor() {
+        mBarcodeToIndexMap.clear();
+        mDuplicateBarcodes.clear();
+        final int barcodeColumnIndex = mCursor.getColumnIndex("barcode");
+
+        mCursor.moveToPosition(-1);
+        while (mCursor.moveToNext()) {
+            String barcode = mCursor.getString(barcodeColumnIndex);
+            if (mBarcodeToIndexMap.containsKey(barcode)) {
+                mDuplicateBarcodes.add(barcode);
+            }
+            mBarcodeToIndexMap.put(barcode, mCursor.getPosition());
+        }
+    }
+
+    public boolean getIsDuplicate(String barcode) {
+        return mDuplicateBarcodes.contains(barcode);
+    }
+
+    public int getIndexOfBarcode(String barcode) {
+        Integer index = mBarcodeToIndexMap.get(barcode);
+        return index != null ? index : -1;
     }
 
     private class NotifyingDataSetObserver extends DataSetObserver {

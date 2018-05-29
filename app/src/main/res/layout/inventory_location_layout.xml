@@ -17,10 +17,11 @@
         android:layout_marginBottom="1dp"
         android:layout_marginStart="3dp"
         android:layout_marginEnd="3dp"
+        android:background="#444444"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toStartOf="@+id/location_warning_symbol"/>
 
     <TextView
         android:id="@+id/location_text_view"
@@ -38,5 +39,20 @@
         app:layout_constraintBottom_toBottomOf="@+id/location_background"
         app:layout_constraintStart_toStartOf="@+id/location_background"
         app:layout_constraintEnd_toEndOf="@+id/location_background"/>
+
+    <ImageView
+        android:id="@+id/location_warning_symbol"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="0dp"
+        android:layout_marginEnd="3dp"
+        android:src="@drawable/warning"
+        android:visibility="gone"
+        android:contentDescription="Duplicate item(s)"
+        android:tooltipText="Duplicate item(s)"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/location_background"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 </android.support.constraint.ConstraintLayout>

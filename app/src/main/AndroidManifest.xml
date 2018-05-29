@@ -3,14 +3,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.porterlee.standardinventory">
 
-    <permission
-        android:name="com.porterlee.standardinventory.permission.SCANNER_RESULT_RECEIVER"
-        android:protectionLevel="normal"/>
-
-    <uses-permission android:name="android.permission.VIBRATE"/>
-    <uses-permission android:name="com.porterlee.standardinventory.permission.SCANNER_RESULT_RECEIVER"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.BROADCAST_STICKY"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
         android:allowBackup="true"

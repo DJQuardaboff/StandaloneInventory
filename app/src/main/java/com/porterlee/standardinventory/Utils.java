@@ -48,4 +48,20 @@ public class Utils {
             context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.fromFile(file)));
         }
     }
+
+    public static class Holder <T> {
+        private T value;
+
+        public Holder(T initialValue) {
+            value = initialValue;
+        }
+
+        public T get() {
+            return value;
+        }
+
+        public void set(T object) {
+            this.value = object;
+        }
+    }
 }
