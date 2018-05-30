@@ -68,7 +68,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private CursorRecyclerViewAdapter<InventoryItemViewHolder> itemRecyclerAdapter;
     private CursorRecyclerViewAdapter<InventoryLocationViewHolder> locationRecyclerAdapter;
     private SQLiteDatabase mDatabase;
-    
+
     private AbstractScanner getScanner() {
         return AbstractScanner.getInstance();
     }
@@ -78,7 +78,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         super.onCreate(savedInstanceState);
 
         getScanner().setActivity(this);
-        
+
         if (!getScanner().init()) {
             finish();
             Toast.makeText(this, "Scanner failed to initialize", Toast.LENGTH_LONG).show();
