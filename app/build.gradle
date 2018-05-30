@@ -52,10 +52,16 @@ android {
                 }
         }
     }
-    android.applicationVariants.all { variant ->
-        variant.outputs.all {
-            outputFileName = "standard_inventory-${variant.name}-${variant.versionName}.apk"
-        }
+    android.applicationVariants.all {
+        variant ->
+            variant.outputs.all {
+                output ->
+                    if (output.baseName.startsWith("LAM")) {
+                        outputFileName = "v${variant.versionName}/LAMInventory.apk"
+                    } else {
+                        outputFileName = "v${variant.versionName}/StandardInventory.apk"
+                    }
+            }
     }
     configurations.all {
         resolutionStrategy.cacheChangingModulesFor 0, 'seconds'

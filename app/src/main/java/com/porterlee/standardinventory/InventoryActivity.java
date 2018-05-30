@@ -18,6 +18,7 @@ import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.*;
@@ -165,7 +166,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         //noinspection ResultOfMethodCallIgnored
         outputFile.getParentFile().mkdirs();
         databaseFile = new File(getFilesDir() + "/" + InventoryDatabase.DIRECTORY + "/" + InventoryDatabase.FILE_NAME);
-        databaseFile = new File(OUTPUT_PATH, InventoryDatabase.FILE_NAME);
+        //databaseFile = new File(OUTPUT_PATH, InventoryDatabase.FILE_NAME);
         //noinspection ResultOfMethodCallIgnored
         databaseFile.getParentFile().mkdirs();
 
@@ -572,20 +573,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         }
 
         itemRecyclerAdapter.changeCursor(queryItems());
-
-        int selectedItem = -1;
-        if (itemRecyclerAdapter.getCursor() != null) {
-            int barcodeIndex = itemRecyclerAdapter.getCursor().getColumnIndex("barcode");
-            itemRecyclerAdapter.getCursor().moveToFirst();
-
-            while (!itemRecyclerAdapter.getCursor().isAfterLast()) {
-                if (itemRecyclerAdapter.getCursor().getString(barcodeIndex).equals(barcode))
-                    selectedItem = itemRecyclerAdapter.getCursor().getPosition();
-                itemRecyclerAdapter.getCursor().moveToNext();
-            }
-        }
-
-        itemRecyclerView.setSelectedItem(selectedItem);
+        itemRecyclerView.setSelectedItem(itemRecyclerAdapter.getIndexOfBarcode(barcode));
         changedSinceLastArchive = true;
         lastItemBarcode = barcode;
         updateInfo();
@@ -626,21 +614,10 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             Toast.makeText(this, "Error adding location \"" + barcode + "\" to the inventory", Toast.LENGTH_LONG).show();
             return;
         }
+
         locationRecyclerAdapter.changeCursor(queryLocations());
-
-        int selectedLocation = -1;
-        int barcodeIndex = locationRecyclerAdapter.getCursor().getColumnIndex("barcode");
-        locationRecyclerAdapter.getCursor().moveToFirst();
-
-        while (!locationRecyclerAdapter.getCursor().isAfterLast()) {
-            if (locationRecyclerAdapter.getCursor().getString(barcodeIndex).equals(barcode))
-                selectedLocation = locationRecyclerAdapter.getCursor().getPosition();
-            locationRecyclerAdapter.getCursor().moveToNext();
-        }
-
-        locationRecyclerView.setSelectedItem(selectedLocation);
+        locationRecyclerView.setSelectedItem(locationRecyclerAdapter.getIndexOfBarcode(barcode));
         changedSinceLastArchive = true;
-
 
         if (!lastLocationBarcode.equals(barcode)) {
             lastLocationId = rowID;
@@ -782,16 +759,17 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
             barcodeTextView.setText(barcode);
 
-            if (isSelected)
+            if (isSelected) {
                 barcodeTextView.setTypeface(null, Typeface.BOLD);
-            else
+            } else {
                 barcodeTextView.setTypeface(null, Typeface.NORMAL);
+            }
 
-            /*if (tags.contains(DUPLICATE_BARCODE_TAG))
-                barcodeTextView.setTextColor(errorColor);
-            else
-                barcodeTextView.setTextColor(itemBarcodeTextViewDefaultColor);*/
-
+            if (itemRecyclerAdapter.getIsDuplicate(barcode)) {
+                itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.item_color_yellow, null));
+            } else {
+                itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.item_color_white, null));
+            }
         }
     }
 
