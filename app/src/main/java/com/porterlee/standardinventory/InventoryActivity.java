@@ -100,7 +100,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     return;
                 }
 
-                if (!isItem(barcode) && !isContainer(barcode) && !isLocation(barcode)) {
+                if (BarcodeType.getBarcodeType(barcode).equals(BarcodeType.Invalid)) {
                     getScanner().onScanComplete(false);
                     Toast.makeText(InventoryActivity.this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
                     return;
@@ -132,10 +132,10 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     return;
                 }
 
-                if (isItem(barcode) || isContainer(barcode)) {
+                if (BarcodeType.Item.isOfType(barcode) || BarcodeType.Container.isOfType(barcode)) {
                     getScanner().onScanComplete(true);
                     addItem(barcode);
-                } else if (isLocation(barcode)) {
+                } else if (BarcodeType.Location.isOfType(barcode)) {
                     getScanner().onScanComplete(true);
                     addBarcodeLocation(barcode);
                 } else {
@@ -672,18 +672,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         return DateFormat.format(DATE_FORMAT, millis).toString();
     }
 
-    private boolean isItem(@NonNull String barcode) {
-        return barcode.startsWith("e1") || barcode.startsWith("E");// || barcode.startsWith("t") || barcode.startsWith("T");
-    }
-
-    private boolean isContainer(@NonNull String barcode) {
-        return barcode.startsWith("m1") || barcode.startsWith("M");// || barcode.startsWith("a") || barcode.startsWith("A");
-    }
-
-    private boolean isLocation(@NonNull String barcode) {
-        return barcode.startsWith("V");// || barcode.startsWith("L5");
-    }
-
     private class InventoryLocationViewHolder extends RecyclerView.ViewHolder {
         private TextView textView;
         private View background;
@@ -756,7 +744,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                             getScanner().setIsEnabled(false);
                             new AlertDialog.Builder(InventoryActivity.this)
                                     .setCancelable(true)
-                                    .setTitle("Remove " + (isItem(barcode) ? "Item" : "Container"))
+                                    .setTitle("Remove " + BarcodeType.getBarcodeType(barcode).name())
                                     .setMessage(String.format("Are you sure you want to remove item \"%s\"?", barcode))
                                     .setNegativeButton(R.string.action_no, null)
                                     .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {

@@ -14,19 +14,23 @@ public enum BarcodeType {
     }
 
     public boolean isOfType(String barcode) {
-        for (String prefix : prefixes)
-            if (barcode.startsWith(prefix))
+        if (this.equals(Invalid)) {
+            return this.equals(getBarcodeType(barcode));
+        }
+        for (String prefix : prefixes) {
+            if (barcode.startsWith(prefix)) {
                 return true;
+            }
+        }
         return false;
     }
 
     public static BarcodeType getBarcodeType(String barcode) {
         if (barcode == null)
             return Invalid;
-        for(BarcodeType barcodeType : BarcodeType.values())
-            for (String prefix : barcodeType.prefixes)
-                if (barcode.startsWith(prefix))
-                    return barcodeType;
+        for(int i = 0; i < BarcodeType.values().length - 1; i++)
+            if (BarcodeType.values()[i].isOfType(barcode))
+                return BarcodeType.values()[i];
         return Invalid;
     }
 }
