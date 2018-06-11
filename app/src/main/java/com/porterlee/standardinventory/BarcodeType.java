@@ -4,7 +4,6 @@ public enum BarcodeType {
     Item(BuildConfig.is_LAM_system ? new String[] { "j1", "J" } : new String[] { "e1", "E" }),
     Container("m1", "M"),
     Location("V", "L5"),
-    Process("L3"),
     Invalid();
 
     private final String[] prefixes;
