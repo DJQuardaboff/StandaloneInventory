@@ -6,14 +6,14 @@ android {
         applicationId "com.porterlee.standardinventory"
         minSdkVersion 17
         targetSdkVersion 27
-        versionCode 7
-        versionName "1.6"
+        versionCode 9
+        versionName "1.8"
         //testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
             //minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            //proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
         debug {
             applicationIdSuffix ".debug"
@@ -69,17 +69,20 @@ android {
 }
 
 dependencies {
-    janam_XM5Implementation project(':plc_scanners-janam_XM5Release-1.1')
-    janam_XT2_XT2__XM75_XT100_XG200Implementation project(':plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release-1.1')
-    zebra_emdk_symbol_26Implementation project(':plc_scanners-zebra_emdk_symbol_26Release-1.1')
+    janam_XM5Implementation project(':plc_scanners-janam_XM5Release')
+    janam_XT2_XT2__XM75_XT100_XG200Implementation project(':plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release')
+    zebra_emdk_symbol_26Implementation project(':plc_scanners-zebra_emdk_symbol_26Release')
 
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support:support-core-utils:27.1.1'
     implementation 'com.android.support:recyclerview-v7:27.1.1'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.0'
-    implementation 'me.zhanghai.android.materialprogressbar:library:1.4.2'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.1'
+    implementation('me.zhanghai.android.materialprogressbar:library:1.4.2')     {
+        exclude group: 'com.android.support'
+        //exclude module: 'appcompat-v7'
+    }
     implementation 'org.jetbrains:annotations-java5:15.0'
-    //testImplementation 'junit:junit:4.12'
-    //androidTestImplementation 'com.android.support.test:runner:1.0.1'
-    //androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }

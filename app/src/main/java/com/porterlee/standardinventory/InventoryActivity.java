@@ -67,6 +67,66 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private CursorRecyclerViewAdapter<InventoryItemViewHolder> itemRecyclerAdapter;
     private CursorRecyclerViewAdapter<InventoryLocationViewHolder> locationRecyclerAdapter;
     private SQLiteDatabase mDatabase;
+
+    private final AbstractScanner.OnBarcodeScannedListener onBarcodeScannedListener = new AbstractScanner.OnBarcodeScannedListener() {
+        @Override
+        public void onBarcodeScanned(final String barcode) {
+            if (saveTask != null) {
+                AbstractScanner.onScanComplete(false);
+                Toast.makeText(InventoryActivity.this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (barcode.equals("")) {
+                AbstractScanner.onScanComplete(false);
+                Toast.makeText(InventoryActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (BarcodeType.getBarcodeType(barcode).equals(BarcodeType.Invalid)) {
+                AbstractScanner.onScanComplete(false);
+                Toast.makeText(InventoryActivity.this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            IS_DUPLICATE_STATEMENT.bindLong(1, lastLocationId);
+            IS_DUPLICATE_STATEMENT.bindString(2, barcode);
+            final boolean isDuplicate = IS_DUPLICATE_STATEMENT.simpleQueryForLong() > 0;
+
+            if (isDuplicate) {
+                AbstractScanner.onScanComplete(false);
+                getScanner().setIsEnabled(false);
+                new AlertDialog.Builder(InventoryActivity.this)
+                        .setCancelable(false)
+                        .setTitle("Duplicate item")
+                        .setMessage("An item with the same barcode was already scanned, would you still like to add it to the list?")
+                        .setNegativeButton(R.string.action_no, null)
+                        .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                addItem(barcode);
+                            }
+                        }).setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        getScanner().setIsEnabled(true);
+                    }
+                }).create().show();
+                return;
+            }
+
+            if (BarcodeType.Item.isOfType(barcode) || BarcodeType.Container.isOfType(barcode)) {
+                AbstractScanner.onScanComplete(true);
+                addItem(barcode);
+            } else if (BarcodeType.Location.isOfType(barcode)) {
+                AbstractScanner.onScanComplete(true);
+                addBarcodeLocation(barcode);
+            } else {
+                AbstractScanner.onScanComplete(false);
+                Toast.makeText(InventoryActivity.this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
     
     private AbstractScanner getScanner() {
         return AbstractScanner.getInstance();
@@ -76,73 +136,13 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getScanner().setActivity(this);
+        AbstractScanner.setActivity(this);
         
         if (!getScanner().init()) {
             finish();
             Toast.makeText(this, "Scanner failed to initialize", Toast.LENGTH_LONG).show();
             return;
         }
-
-        getScanner().setOnBarcodeScannedListener(new AbstractScanner.OnBarcodeScannedListener() {
-            @Override
-            public void onBarcodeScanned(final String barcode) {
-                if (saveTask != null) {
-                    getScanner().onScanComplete(false);
-                    Toast.makeText(InventoryActivity.this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                if (barcode.equals("")) {
-                    getScanner().onScanComplete(false);
-                    Toast.makeText(InventoryActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                if (BarcodeType.getBarcodeType(barcode).equals(BarcodeType.Invalid)) {
-                    getScanner().onScanComplete(false);
-                    Toast.makeText(InventoryActivity.this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                IS_DUPLICATE_STATEMENT.bindLong(1, lastLocationId);
-                IS_DUPLICATE_STATEMENT.bindString(2, barcode);
-                final boolean isDuplicate = IS_DUPLICATE_STATEMENT.simpleQueryForLong() > 0;
-
-                if (isDuplicate) {
-                    getScanner().onScanComplete(false);
-                    getScanner().setIsEnabled(false);
-                    new AlertDialog.Builder(InventoryActivity.this)
-                            .setCancelable(false)
-                            .setTitle("Duplicate item")
-                            .setMessage("An item with the same barcode was already scanned, would you still like to add it to the list?")
-                            .setNegativeButton(R.string.action_no, null)
-                            .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    addItem(barcode);
-                                }
-                            }).setOnDismissListener(new DialogInterface.OnDismissListener() {
-                                @Override
-                                public void onDismiss(DialogInterface dialog) {
-                                    getScanner().setIsEnabled(true);
-                                }
-                            }).create().show();
-                    return;
-                }
-
-                if (BarcodeType.Item.isOfType(barcode) || BarcodeType.Container.isOfType(barcode)) {
-                    getScanner().onScanComplete(true);
-                    addItem(barcode);
-                } else if (BarcodeType.Location.isOfType(barcode)) {
-                    getScanner().onScanComplete(true);
-                    addBarcodeLocation(barcode);
-                } else {
-                    getScanner().onScanComplete(false);
-                    Toast.makeText(InventoryActivity.this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
 
         setContentView(R.layout.inventory_layout);
 
@@ -322,10 +322,14 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     protected void onResume() {
         super.onResume();
         getScanner().onResume();
+        AbstractScanner.setOnBarcodeScannedListener(onBarcodeScannedListener);
+        AbstractScanner.setActivity(this);
     }
 
     @Override
     protected void onPause() {
+        AbstractScanner.setActivity(null);
+        AbstractScanner.setOnBarcodeScannedListener(null);
         getScanner().onPause();
         super.onPause();
     }
