@@ -2,6 +2,7 @@ package com.porterlee.standardinventory;
 
 import android.content.Context;
 import android.content.Intent;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 
@@ -39,11 +40,12 @@ public class Utils {
     }
 
     public static void refreshExternalPath(Context context, File file) {
+        if (file.isDirectory()) {
+            throw new IllegalArgumentException("Directories will be converted to files if refreshed");
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-            Uri contentUri = Uri.fromFile(file);
-            mediaScanIntent.setData(contentUri);
-            context.sendBroadcast(mediaScanIntent);
+            MediaScannerConnection.scanFile(context, new String[] { file.getAbsolutePath() }, null, null);
         } else {
             context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.fromFile(file)));
         }

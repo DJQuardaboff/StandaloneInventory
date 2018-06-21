@@ -77,7 +77,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 return;
             }
 
-            if (barcode.equals("")) {
+            if (barcode == null || barcode.equals("")) {
                 AbstractScanner.onScanComplete(false);
                 Toast.makeText(InventoryActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
                 return;
@@ -157,6 +157,10 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             }
         }
 
+        preInit();
+    }
+
+    private void preInit() {
         archiveDirectory = new File(getFilesDir() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY);
         //noinspection ResultOfMethodCallIgnored
         archiveDirectory.mkdirs();
@@ -854,7 +858,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     return "Could not delete existing output file";
                 }
 
-                Utils.refreshExternalPath(InventoryActivity.this.getApplicationContext(), OUTPUT_PATH);
+                Utils.refreshExternalPath(InventoryActivity.this.getApplicationContext(), outputFile);
 
                 if (!TEMP_OUTPUT_FILE.renameTo(outputFile)) {
                     //noinspection ResultOfMethodCallIgnored
@@ -863,7 +867,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     return "Could not rename temp file to \"" + outputFile.getName() + "\"";
                 }
 
-                Utils.refreshExternalPath(InventoryActivity.this.getApplicationContext(), OUTPUT_PATH);
+                Utils.refreshExternalPath(InventoryActivity.this.getApplicationContext(), outputFile);
             } catch (FileNotFoundException e){
                 e.printStackTrace();
                 return "FileNotFoundException occurred while saving";
@@ -937,32 +941,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                             postSave();
                         }
                     } else if (requestCode == 2) {
-                        archiveDirectory = new File(getFilesDir() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY);
-                        //noinspection ResultOfMethodCallIgnored
-                        archiveDirectory.mkdirs();
-                        outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "data.txt");
-                        //noinspection ResultOfMethodCallIgnored
-                        outputFile.getParentFile().mkdirs();
-                        databaseFile = new File(getFilesDir() + "/" + InventoryDatabase.DIRECTORY + "/" + InventoryDatabase.FILE_NAME);
-                        databaseFile = new File(OUTPUT_PATH, InventoryDatabase.FILE_NAME);
-                        //noinspection ResultOfMethodCallIgnored
-                        databaseFile.getParentFile().mkdirs();
-
-                        try {
-                            initialize();
-                        } catch (SQLiteCantOpenDatabaseException e) {
-                            try {
-                                //System.out.println(databaseFile.exists());
-                                if (databaseFile.renameTo(File.createTempFile("error", ".db", new File(databaseFile.getParent(), InventoryDatabase.ARCHIVE_DIRECTORY)))) {
-                                    Toast.makeText(this, "There was an error loading the inventory file. It has been archived", Toast.LENGTH_SHORT).show();
-                                } else {
-                                    databaseLoadError();
-                                }
-                            } catch (IOException e1) {
-                                e1.printStackTrace();
-                                databaseLoadError();
-                            }
-                        }
+                        preInit();
                     }
                 }
             }
