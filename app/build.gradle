@@ -6,8 +6,8 @@ android {
         applicationId "com.porterlee.standardinventory"
         minSdkVersion 17
         targetSdkVersion 27
-        versionCode 10
-        versionName "1.9"
+        versionCode 11
+        versionName "2.0"
         //testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -24,7 +24,7 @@ android {
     productFlavors {
         Default {
             dimension "system"
-            resValue "string", "app_name", "Mobile Inventory"
+            resValue "string", "app_name", "LIMS Inventory"
         }
         LAM {
             dimension "system"
@@ -59,7 +59,7 @@ android {
                     if (output.baseName.startsWith("LAM")) {
                         outputFileName = "v${variant.versionName}/LAMInventory.apk"
                     } else {
-                        outputFileName = "v${variant.versionName}/StandardInventory.apk"
+                        outputFileName = "v${variant.versionName}/LIMSInventory.apk"
                     }
             }
     }
@@ -76,7 +76,7 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support:support-core-utils:27.1.1'
     implementation 'com.android.support:recyclerview-v7:27.1.1'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.1'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.2'
     implementation('me.zhanghai.android.materialprogressbar:library:1.4.2')     {
         exclude group: 'com.android.support'
         //exclude module: 'appcompat-v7'
