@@ -10,6 +10,7 @@ public class InventoryDatabase {
     public static final String ITEM_ID = "item_id";
     public static final String PICTURE = "picture";
     public static final String BARCODE = "barcode";
+    public static final String QUANTITY = "quantity";
     public static final String LOCATION_ID = "location";
     public static final String DESCRIPTION = "description";
     public static final String TAGS = "tags";
@@ -21,13 +22,14 @@ public class InventoryDatabase {
         public static final String NAME = "items";
 
         static public void create(SQLiteDatabase database) {
-            database.execSQL("CREATE TABLE IF NOT EXISTS " + NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + BARCODE + " TEXT NOT NULL, " + LOCATION_ID + " INTEGER NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + TAGS + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )");
+            database.execSQL("CREATE TABLE IF NOT EXISTS " + NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + BARCODE + " TEXT NOT NULL, " + QUANTITY + " INTEGER DEFAULT 1, " + LOCATION_ID + " INTEGER NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + TAGS + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )");
             database.execSQL("CREATE INDEX IF NOT EXISTS " + ITEM_BARCODE_INDEX + " ON " + NAME + " ( " + BARCODE + " );");
         }
 
         public class Keys {
             public static final String ID = NAME + '.' + InventoryDatabase.ID;
             public static final String BARCODE = NAME + '.' + InventoryDatabase.BARCODE;
+            public static final String QUANTITY = NAME + '.' + InventoryDatabase.QUANTITY;
             public static final String LOCATION_ID = NAME + '.' + InventoryDatabase.LOCATION_ID;
             public static final String DESCRIPTION = NAME + '.' + InventoryDatabase.DESCRIPTION;
             public static final String TAGS = NAME + '.' + InventoryDatabase.TAGS;

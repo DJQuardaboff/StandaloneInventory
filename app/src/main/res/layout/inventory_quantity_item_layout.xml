@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="36dp">
+
+    <TextView
+        android:id="@+id/barcode_text_view"
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="36dp"
+        android:layout_marginEnd="8dp"
+        android:ellipsize="middle"
+        android:singleLine="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/edit_quantity"/>
+
+    <EditText
+        android:id="@+id/edit_quantity"
+        style="@style/TextAppearance.AppCompat.Small"
+        android:layout_width="59dp"
+        android:layout_height="match_parent"
+        android:inputType="number"
+        android:hint="Quantity"
+        android:singleLine="true"
+        android:imeOptions="actionDone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/menu_button"
+        app:layout_constraintStart_toEndOf="@+id/barcode_text_view"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <ImageButton
+        android:id="@+id/menu_button"
+        android:layout_width="36dp"
+        android:layout_height="0dp"
+        android:background="@null"
+        android:src="@drawable/ic_more_vert_white_24px"
+        android:paddingStart="8dp"
+        android:paddingEnd="4dp"
+        android:gravity="end"
+        android:contentDescription="@string/menu_description"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/edit_quantity"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</android.support.constraint.ConstraintLayout>

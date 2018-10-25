@@ -1,6 +1,7 @@
 package com.porterlee.standardinventory;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -22,12 +23,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.*;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -36,6 +40,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Locale;
 
 import com.porterlee.plcscanners.AbstractScanner;
 import com.porterlee.standardinventory.InventoryDatabase.ItemTable;
@@ -47,10 +52,12 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), InventoryDatabase.DIRECTORY);
     private static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
     private static final String TAG = InventoryActivity.class.getSimpleName();
+    private static final String OUTPUT_FILE_HEADER = String.format(Locale.US, "%s|%s|%s|v%s|%d", BuildConfig.APPLICATION_ID.substring(BuildConfig.APPLICATION_ID.indexOf('.', BuildConfig.APPLICATION_ID.indexOf('.') + 1) + 1), BuildConfig.FLAVOR, BuildConfig.BUILD_TYPE, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
     private SQLiteStatement IS_DUPLICATE_STATEMENT;
     private SQLiteStatement LAST_ITEM_BARCODE_STATEMENT;
     private SQLiteStatement TOTAL_ITEM_COUNT;
     private SQLiteStatement TOTAL_LOCATION_COUNT;
+    private SQLiteStatement UPDATE_QUANTITY;
     private File outputFile;
     private File databaseFile;
     private File archiveDirectory;
@@ -230,6 +237,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         LAST_ITEM_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT " + ItemTable.Keys.BARCODE + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " DESC LIMIT 1;");
         TOTAL_ITEM_COUNT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME);
         TOTAL_LOCATION_COUNT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + LocationTable.NAME);
+        UPDATE_QUANTITY = mDatabase.compileStatement("UPDATE " + ItemTable.NAME + " SET " + InventoryDatabase.QUANTITY + " = ? WHERE " + InventoryDatabase.ID + " = ?");
 
         //itemCount = getItemCount();
         //containerCount = getContainerCount();
@@ -253,7 +261,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             @NonNull
             @Override
             public InventoryItemViewHolder onCreateViewHolder(@NonNull final ViewGroup parent, final int viewType) {
-                return new InventoryItemViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.inventory_item_layout, parent, false));
+                return new InventoryItemViewHolder(LayoutInflater.from(parent.getContext()).inflate(BuildConfig.display_quantity ? R.layout.inventory_quantity_item_layout : R.layout.inventory_item_layout, parent, false));
             }
 
             @Override
@@ -310,6 +318,18 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         }
         mDatabase.setTransactionSuccessful();
         mDatabase.endTransaction();*/
+        final SoftKeyboardHandledConstraintLayout softKeyboardHandler = findViewById(R.id.inventory_layout);
+        softKeyboardHandler.setOnSoftKeyboardVisibilityChangeListener(new SoftKeyboardHandledConstraintLayout.SoftKeyboardVisibilityChangeListener() {
+            @Override
+            public void onSoftKeyboardShow() { }
+
+            @Override
+            public void onSoftKeyboardHide() {
+                final View view = getCurrentFocus();
+                if (view  != null)
+                    view.clearFocus();
+            }
+        });
 
         itemRecyclerView.setSelectedItem(-1);
         locationRecyclerView.setSelectedItem(-1);
@@ -640,7 +660,18 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }
 
     private Cursor queryItems() {
-        return mDatabase.rawQuery("SELECT * FROM ( SELECT " + ItemTable.Keys.ID + " AS _id, " + ItemTable.Keys.ID + " AS min_id, " + ItemTable.Keys.LOCATION_ID + " AS location_id, " + ItemTable.Keys.BARCODE + " AS barcode, " + ItemTable.Keys.DESCRIPTION + " AS description, " + ItemTable.Keys.TAGS + " AS tags, " + ItemTable.Keys.DATE_TIME + " AS date_time FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.LOCATION_ID + " IN ( SELECT " + LocationTable.Keys.ID + " AS _id FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ? ) ) WHERE _id NOT NULL ORDER BY _id", new String[] { lastLocationBarcode });
+        return mDatabase.rawQuery("SELECT * FROM ( SELECT " + ItemTable.Keys.ID + " AS _id, " + ItemTable.Keys.ID + " AS min_id, " + ItemTable.Keys.LOCATION_ID + " AS location_id, " + ItemTable.Keys.BARCODE + " AS barcode, " + ItemTable.Keys.QUANTITY + " AS quantity, " + ItemTable.Keys.DESCRIPTION + " AS description, " + ItemTable.Keys.TAGS + " AS tags, " + ItemTable.Keys.DATE_TIME + " AS date_time FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.LOCATION_ID + " IN ( SELECT " + LocationTable.Keys.ID + " AS _id FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ? ) ) WHERE _id NOT NULL ORDER BY _id", new String[] { lastLocationBarcode });
+    }
+
+    private boolean updateQuantity(long itemId, int quantity) {
+        UPDATE_QUANTITY.bindLong(1, quantity);
+        UPDATE_QUANTITY.bindLong(2, itemId);
+        boolean success = UPDATE_QUANTITY.executeUpdateDelete() > 0;
+        if (success) {
+            itemRecyclerAdapter.changeCursor(queryItems());
+            changedSinceLastArchive = true;
+        }
+        return success;
     }
 
     private String getLastItemBarcode() {
@@ -701,6 +732,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         private ImageButton expandedMenuButton;
         private long id = -1;
         private long locationId = -1;
+        private long quantity = 1;
         private String barcode = "";
         private String description = "";
         private String tags = "";
@@ -748,6 +780,40 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     popup.show();
                 }
             });
+            if (BuildConfig.display_quantity) {
+                final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
+                quantityEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                    @Override
+                    public void onFocusChange(View v, boolean hasFocus) {
+                        if (hasFocus) {
+                            quantityEditText.selectAll();
+                        } else {
+                            quantityEditText.setText(String.valueOf(quantity));
+                        }
+                    }
+                });
+                quantityEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                    @Override
+                    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                        if (actionId== EditorInfo.IME_ACTION_DONE) {
+                            try {
+                                int inputQuantity = Integer.parseInt(quantityEditText.getText().toString());
+                                if (updateQuantity(id, inputQuantity)) {
+                                    quantity = inputQuantity;
+                                } else {
+                                    quantityEditText.setText(String.valueOf(quantity));
+                                }
+                            } catch(NumberFormatException e) {
+                                quantityEditText.setText(String.valueOf(quantity));
+                            }
+                            quantityEditText.clearFocus();
+                            InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                            imm.hideSoftInputFromWindow(quantityEditText.getWindowToken(), 0);
+                        }
+                        return false;
+                    }
+                });
+            }
         }
 
         long getId() {
@@ -776,6 +842,12 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             } else {
                 itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.item_color_white, null));
             }
+
+            if (BuildConfig.display_quantity) {
+                final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
+                quantityEditText.setText(cursor.getString(cursor.getColumnIndexOrThrow(InventoryDatabase.QUANTITY)));
+                quantityEditText.clearFocus();
+            }
         }
     }
 
@@ -783,11 +855,12 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         private static final int MAX_UPDATES = 100;
 
         protected String doInBackground(Void... voids) {
-            Cursor itemCursor = mDatabase.rawQuery("SELECT " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.DATE_TIME + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " ASC;",null);
+            Cursor itemCursor = mDatabase.rawQuery("SELECT " + ItemTable.Keys.BARCODE + ", " + ItemTable.Keys.QUANTITY + ", " + ItemTable.Keys.LOCATION_ID + ", " + ItemTable.Keys.DATE_TIME + " FROM " + ItemTable.NAME + " ORDER BY " + ItemTable.Keys.ID + " ASC;",null);
             Cursor locationCursor = mDatabase.rawQuery("SELECT " + LocationTable.Keys.ID + ", " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " ASC;", null);
 
             itemCursor.moveToFirst();
             int itemBarcodeIndex = itemCursor.getColumnIndex(InventoryDatabase.BARCODE);
+            int itemQuantityIndex = itemCursor.getColumnIndex(InventoryDatabase.QUANTITY);
             int itemLocationIdIndex = itemCursor.getColumnIndex(InventoryDatabase.LOCATION_ID);
             int itemDateTimeIndex = itemCursor.getColumnIndex(InventoryDatabase.DATE_TIME);
 
@@ -814,7 +887,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 int updateNum = 0;
 
                 //
-                printStream.print(BuildConfig.APPLICATION_ID.split("\\.")[2] + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n");
+                printStream.print(OUTPUT_FILE_HEADER + "\r\n");
                 printStream.flush();
                 //
 
@@ -840,11 +913,15 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                             }
                         }
 
-                        printStream.printf("\"%1s\"|\"%2s\"\r\n", locationCursor.getString(locationBarcodeIndex), locationCursor.getString(locationDateTimeIndex));
+                        printStream.printf("\"%s\"|\"%s\"\r\n", locationCursor.getString(locationBarcodeIndex), locationCursor.getString(locationDateTimeIndex));
                         printStream.flush();
                     }
 
-                    printStream.printf("\"%1s\"|\"%2s\"\r\n", itemCursor.getString(itemBarcodeIndex), itemCursor.getString(itemDateTimeIndex));
+                    if (BuildConfig.display_quantity) {
+                        printStream.printf("\"%s\"|\"%d\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex), itemCursor.getLong(itemQuantityIndex), itemCursor.getString(itemDateTimeIndex));
+                    } else {
+                        printStream.printf("\"%s\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex), itemCursor.getString(itemDateTimeIndex));
+                    }
                     printStream.flush();
 
                     itemCursor.moveToNext();

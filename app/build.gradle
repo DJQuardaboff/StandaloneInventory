@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
+apply from: 'systems.gradle'
 
 android {
     compileSdkVersion 27
     defaultConfig {
-        applicationId "com.porterlee.standardinventory"
         minSdkVersion 17
         targetSdkVersion 27
-        versionCode 11
-        versionName "2.0"
+        versionCode 12
+        versionName "2.1"
         //testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -22,15 +22,6 @@ android {
     }
     flavorDimensions "system", "scannerSdk"
     productFlavors {
-        Default {
-            dimension "system"
-            resValue "string", "app_name", "LIMS Inventory"
-        }
-        LAM {
-            dimension "system"
-            resValue "string", "app_name", "LAM Inventory"
-            applicationIdSuffix ".lam"
-        }
         janam_XM5 {
             dimension "scannerSdk"
         }
@@ -40,28 +31,52 @@ android {
         zebra_emdk_symbol_26 {
             dimension "scannerSdk"
         }
+    }
+    productFlavors.whenObjectAdded {
+        flavor ->
+            flavor.dimension = 'system'
+            def flavorData = project[flavor.name]
+            flavor.applicationId "com.porterlee.${flavor.name.toLowerCase()}.inventory"
+            flavor.resValue 'string', 'app_name', "${flavor.name} Inventory"
+
+            // BarcodeType item
+            flavor.buildConfigField 'boolean',  'typeItem_hasCustodyOf', flavorData.typeItem_hasCustodyOf ? 'true' : 'false'
+            flavor.buildConfigField 'boolean',  'typeItem_hasLabCode', flavorData.typeItem_hasLabCode ? 'true' : 'false'
+            flavor.buildConfigField 'String',   'typeItem_base32Prefix', flavorData.typeItem_base32Prefix ? "\"${flavorData.typeItem_base32Prefix}\"" : 'null'
+            flavor.buildConfigField 'String',   'typeItem_base64Prefix', flavorData.typeItem_base64Prefix ? "\"${flavorData.typeItem_base64Prefix}\"" : 'null'
+            flavor.buildConfigField 'String[]', 'typeItem_otherPrefixes', flavorData.typeItem_otherPrefixes ? "{\"${flavorData.typeItem_otherPrefixes.join('", "')}\"}" : 'null'
+            // BarcodeType item
+
+            // BarcodeType container
+            flavor.buildConfigField 'boolean',  'typeContainer_hasCustodyOf', flavorData.typeContainer_hasCustodyOf ? 'true' : 'false'
+            flavor.buildConfigField 'boolean',  'typeContainer_hasLabCode', flavorData.typeContainer_hasLabCode ? 'true' : 'false'
+            flavor.buildConfigField 'String',   'typeContainer_base32Prefix', flavorData.typeContainer_base32Prefix ? "\"${flavorData.typeContainer_base32Prefix}\"" : 'null'
+            flavor.buildConfigField 'String',   'typeContainer_base64Prefix', flavorData.typeContainer_base64Prefix ? "\"${flavorData.typeContainer_base64Prefix}\"" : 'null'
+            flavor.buildConfigField 'String[]', 'typeContainer_otherPrefixes', flavorData.typeContainer_otherPrefixes ? "{\"${flavorData.typeContainer_otherPrefixes.join('", "')}\"}" : 'null'
+            // BarcodeType container
+
+            // BarcodeType location
+            flavor.buildConfigField 'boolean',  'typeLocation_hasCustodyOf', flavorData.typeLocation_hasCustodyOf ? 'true' : 'false'
+            flavor.buildConfigField 'boolean',  'typeLocation_hasLabCode', flavorData.typeLocation_hasLabCode ? 'true' : 'false'
+            flavor.buildConfigField 'String',   'typeLocation_base32Prefix', flavorData.typeLocation_base32Prefix ? "\"${flavorData.typeLocation_base32Prefix}\"" : 'null'
+            flavor.buildConfigField 'String',   'typeLocation_base64Prefix', flavorData.typeLocation_base64Prefix ? "\"${flavorData.typeLocation_base64Prefix}\"" : 'null'
+            flavor.buildConfigField 'String[]', 'typeLocation_otherPrefixes', flavorData.typeLocation_otherPrefixes ? "{\"${flavorData.typeLocation_otherPrefixes.join('", "')}\"}" : 'null'
+            // BarcodeType location
+
+            flavor.buildConfigField 'boolean',  'display_quantity', flavorData.display_quantity ? 'true' : 'false'
+    }
+    productFlavors {
+        LIMS {}
+        LAM {}
+        EMS {}
+        QM {}
         applicationVariants.all {
             variant ->
-                android.productFlavors.all {
-                    flavor ->
-                        for (int i = 0; i < flavorDimensionList.size(); i++) {
-                            if (flavor.dimension == flavorDimensionList[i]) {
-                                variant.buildConfigField 'boolean', 'is_' + flavor.getName() + "_" + flavor.dimension, String.valueOf(flavor.name == variant.productFlavors[i].getName())
-                            }
-                        }
+                variant.outputs.all {
+                    output ->
+                        outputFileName = "v${versionName}/${variant.productFlavors[0].name}Inventory.apk"
                 }
         }
-    }
-    android.applicationVariants.all {
-        variant ->
-            variant.outputs.all {
-                output ->
-                    if (output.baseName.startsWith("LAM")) {
-                        outputFileName = "v${variant.versionName}/LAMInventory.apk"
-                    } else {
-                        outputFileName = "v${variant.versionName}/LIMSInventory.apk"
-                    }
-            }
     }
     configurations.all {
         resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
@@ -76,7 +91,7 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support:support-core-utils:27.1.1'
     implementation 'com.android.support:recyclerview-v7:27.1.1'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.2'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
     implementation('me.zhanghai.android.materialprogressbar:library:1.4.2')     {
         exclude group: 'com.android.support'
         //exclude module: 'appcompat-v7'
