@@ -668,7 +668,6 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         UPDATE_QUANTITY.bindLong(2, itemId);
         boolean success = UPDATE_QUANTITY.executeUpdateDelete() > 0;
         if (success) {
-            itemRecyclerAdapter.changeCursor(queryItems());
             changedSinceLastArchive = true;
         }
         return success;
@@ -782,13 +781,33 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             });
             if (BuildConfig.display_quantity) {
                 final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
+                final Runnable setQuantity = new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            String quantityText = quantityEditText.getText().toString();
+                            if(quantityText.length() > 0) {
+                                int inputQuantity = Integer.parseInt(quantityText);
+                                if (updateQuantity(id, inputQuantity)) {
+                                    quantity = inputQuantity;
+                                } else {
+                                    quantityEditText.setText(String.valueOf(quantity));
+                                    Toast.makeText(InventoryActivity.this, "Could not set quantity", Toast.LENGTH_LONG).show();
+                                }
+                            } else {
+                                quantityEditText.setText(String.valueOf(quantity));
+                            }
+                        } catch(NumberFormatException e) {
+                            quantityEditText.setText(String.valueOf(quantity));
+                            Toast.makeText(InventoryActivity.this, "Quantity incorrectly formatted", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                };
                 quantityEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                     @Override
                     public void onFocusChange(View v, boolean hasFocus) {
-                        if (hasFocus) {
-                            quantityEditText.selectAll();
-                        } else {
-                            quantityEditText.setText(String.valueOf(quantity));
+                        if (!hasFocus) {
+                            itemRecyclerView.post(setQuantity);
                         }
                     }
                 });
@@ -796,16 +815,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     @Override
                     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                         if (actionId== EditorInfo.IME_ACTION_DONE) {
-                            try {
-                                int inputQuantity = Integer.parseInt(quantityEditText.getText().toString());
-                                if (updateQuantity(id, inputQuantity)) {
-                                    quantity = inputQuantity;
-                                } else {
-                                    quantityEditText.setText(String.valueOf(quantity));
-                                }
-                            } catch(NumberFormatException e) {
-                                quantityEditText.setText(String.valueOf(quantity));
-                            }
+                            setQuantity.run();
                             quantityEditText.clearFocus();
                             InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                             imm.hideSoftInputFromWindow(quantityEditText.getWindowToken(), 0);
@@ -847,6 +857,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
                 quantityEditText.setText(cursor.getString(cursor.getColumnIndexOrThrow(InventoryDatabase.QUANTITY)));
                 quantityEditText.clearFocus();
+                InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(quantityEditText.getWindowToken(), 0);
             }
         }
     }

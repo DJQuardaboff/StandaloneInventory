@@ -3,7 +3,9 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="36dp">
+    android:layout_height="36dp"
+    android:focusable="false"
+    android:focusableInTouchMode="false">
 
     <TextView
         android:id="@+id/barcode_text_view"
@@ -14,8 +16,8 @@
         android:layout_marginEnd="8dp"
         android:ellipsize="middle"
         android:singleLine="true"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -30,6 +32,8 @@
         android:hint="Quantity"
         android:singleLine="true"
         android:imeOptions="actionDone"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/menu_button"
         app:layout_constraintStart_toEndOf="@+id/barcode_text_view"
@@ -44,6 +48,8 @@
         android:paddingStart="8dp"
         android:paddingEnd="4dp"
         android:gravity="end"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
         android:contentDescription="@string/menu_description"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toEndOf="@+id/edit_quantity"
