@@ -48,8 +48,6 @@
         android:paddingStart="8dp"
         android:paddingEnd="4dp"
         android:gravity="end"
-        android:focusable="false"
-        android:focusableInTouchMode="false"
         android:contentDescription="@string/menu_description"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toEndOf="@+id/edit_quantity"

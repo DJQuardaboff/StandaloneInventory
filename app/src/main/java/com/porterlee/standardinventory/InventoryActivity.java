@@ -32,6 +32,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -270,8 +271,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             }
 
             @Override
-            public int getItemViewType(final int i) {
-                return 0;
+            public void onViewRecycled(@NonNull InventoryItemViewHolder holder) {
+                holder.saveQuantity();
             }
         };
         itemRecyclerView.setAdapter(itemRecyclerAdapter);
@@ -318,18 +319,21 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         }
         mDatabase.setTransactionSuccessful();
         mDatabase.endTransaction();*/
-        final SoftKeyboardHandledConstraintLayout softKeyboardHandler = findViewById(R.id.inventory_layout);
-        softKeyboardHandler.setOnSoftKeyboardVisibilityChangeListener(new SoftKeyboardHandledConstraintLayout.SoftKeyboardVisibilityChangeListener() {
-            @Override
-            public void onSoftKeyboardShow() { }
 
-            @Override
-            public void onSoftKeyboardHide() {
-                final View view = getCurrentFocus();
-                if (view  != null)
-                    view.clearFocus();
-            }
-        });
+        if (BuildConfig.display_quantity) {
+            final SoftKeyboardHandledConstraintLayout softKeyboardHandler = findViewById(R.id.inventory_layout);
+            softKeyboardHandler.setOnSoftKeyboardVisibilityChangeListener(new SoftKeyboardHandledConstraintLayout.SoftKeyboardVisibilityChangeListener() {
+                @Override
+                public void onSoftKeyboardShow() { }
+
+                @Override
+                public void onSoftKeyboardHide() {
+                    final View view = getCurrentFocus();
+                    if (view != null)
+                        view.clearFocus();
+                }
+            });
+        }
 
         itemRecyclerView.setSelectedItem(-1);
         locationRecyclerView.setSelectedItem(-1);
@@ -453,6 +457,13 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 }
 
                 if (saveTask == null) {
+                    for (int i = 0, childCount = itemRecyclerView.getChildCount(); i < childCount; i++) {
+                        final View v = itemRecyclerView.getChildAt(i);
+                        if (v != null) {
+                            final InventoryItemViewHolder holder = (InventoryItemViewHolder) itemRecyclerView.getChildViewHolder(v);
+                            holder.saveQuantity();
+                        }
+                    }
                     preSave();
                     archiveDatabase();
                     (savingToast = Toast.makeText(this, "Saving...", Toast.LENGTH_SHORT)).show();
@@ -660,7 +671,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }
 
     private Cursor queryItems() {
-        return mDatabase.rawQuery("SELECT * FROM ( SELECT " + ItemTable.Keys.ID + " AS _id, " + ItemTable.Keys.ID + " AS min_id, " + ItemTable.Keys.LOCATION_ID + " AS location_id, " + ItemTable.Keys.BARCODE + " AS barcode, " + ItemTable.Keys.QUANTITY + " AS quantity, " + ItemTable.Keys.DESCRIPTION + " AS description, " + ItemTable.Keys.TAGS + " AS tags, " + ItemTable.Keys.DATE_TIME + " AS date_time FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.LOCATION_ID + " IN ( SELECT " + LocationTable.Keys.ID + " AS _id FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ? ) ) WHERE _id NOT NULL ORDER BY _id", new String[] { lastLocationBarcode });
+        return mDatabase.rawQuery("SELECT * FROM ( SELECT " + ItemTable.Keys.ID + " AS _id, " + ItemTable.Keys.ID + " AS min_id, " + ItemTable.Keys.LOCATION_ID + " AS location_id, " + ItemTable.Keys.BARCODE + " AS barcode, " + ItemTable.Keys.QUANTITY + " AS quantity, " + ItemTable.Keys.DESCRIPTION + " AS description, " + ItemTable.Keys.TAGS + " AS tags, " + ItemTable.Keys.DATE_TIME + " AS date_time FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.LOCATION_ID + " IN ( SELECT " + LocationTable.Keys.ID + " AS _id FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ? ) ) WHERE _id NOT NULL ORDER BY _id DESC", new String[] { lastLocationBarcode });
     }
 
     private boolean updateQuantity(long itemId, int quantity) {
@@ -728,6 +739,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     private class InventoryItemViewHolder extends RecyclerView.ViewHolder {
         //private MaterialProgressBar progressBarWaiting;
         private TextView barcodeTextView;
+        private EditText quantityEditText;
         private ImageButton expandedMenuButton;
         private long id = -1;
         private long locationId = -1;
@@ -780,49 +792,51 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                 }
             });
             if (BuildConfig.display_quantity) {
-                final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
-                final Runnable setQuantity = new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            String quantityText = quantityEditText.getText().toString();
-                            if(quantityText.length() > 0) {
-                                int inputQuantity = Integer.parseInt(quantityText);
-                                if (updateQuantity(id, inputQuantity)) {
-                                    quantity = inputQuantity;
-                                } else {
-                                    quantityEditText.setText(String.valueOf(quantity));
-                                    Toast.makeText(InventoryActivity.this, "Could not set quantity", Toast.LENGTH_LONG).show();
-                                }
-                            } else {
-                                quantityEditText.setText(String.valueOf(quantity));
-                            }
-                        } catch(NumberFormatException e) {
-                            quantityEditText.setText(String.valueOf(quantity));
-                            Toast.makeText(InventoryActivity.this, "Quantity incorrectly formatted", Toast.LENGTH_LONG).show();
-                        }
-                    }
-                };
+                quantityEditText = itemView.findViewById(R.id.edit_quantity);
                 quantityEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                     @Override
                     public void onFocusChange(View v, boolean hasFocus) {
                         if (!hasFocus) {
-                            itemRecyclerView.post(setQuantity);
+                            saveQuantity();
                         }
                     }
                 });
                 quantityEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
                     @Override
                     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                        if (actionId== EditorInfo.IME_ACTION_DONE) {
-                            setQuantity.run();
+                        if (actionId == EditorInfo.IME_ACTION_DONE) {
+                            saveQuantity();
                             quantityEditText.clearFocus();
-                            InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                             imm.hideSoftInputFromWindow(quantityEditText.getWindowToken(), 0);
+                            return true;
                         }
                         return false;
                     }
                 });
+                expandedMenuButton.setFocusable(false);
+            }
+        }
+
+        void saveQuantity() {
+            if (BuildConfig.display_quantity) {
+                try {
+                    String quantityText = quantityEditText.getText().toString();
+                    if (quantityText.length() > 0) {
+                        int inputQuantity = Integer.parseInt(quantityText);
+                        if (updateQuantity(id, inputQuantity)) {
+                            quantity = inputQuantity;
+                        } else {
+                            quantityEditText.setText(String.valueOf(quantity));
+                            Toast.makeText(InventoryActivity.this, "Could not set quantity", Toast.LENGTH_LONG).show();
+                        }
+                    } else {
+                        quantityEditText.setText(String.valueOf(quantity));
+                    }
+                } catch (NumberFormatException e) {
+                    quantityEditText.setText(String.valueOf(quantity));
+                    Toast.makeText(InventoryActivity.this, "Quantity incorrectly formatted", Toast.LENGTH_LONG).show();
+                }
             }
         }
 
@@ -854,11 +868,12 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             }
 
             if (BuildConfig.display_quantity) {
-                final AppCompatEditText quantityEditText = itemView.findViewById(R.id.edit_quantity);
                 quantityEditText.setText(cursor.getString(cursor.getColumnIndexOrThrow(InventoryDatabase.QUANTITY)));
-                quantityEditText.clearFocus();
-                InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(quantityEditText.getWindowToken(), 0);
+                if (isSelected) {
+                    quantityEditText.requestFocus();
+                } else {
+                    quantityEditText.clearFocus();
+                }
             }
         }
     }
