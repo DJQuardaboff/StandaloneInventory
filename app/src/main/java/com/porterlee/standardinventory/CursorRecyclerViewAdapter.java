@@ -2,7 +2,7 @@ package com.porterlee.standardinventory;
 
 import android.database.Cursor;
 import android.database.DataSetObserver;
-import android.support.v7.widget.RecyclerView;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.HashMap;

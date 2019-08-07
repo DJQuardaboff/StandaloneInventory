@@ -1,66 +1,101 @@
-ext {
-    LIMS = [
-        typeItem_hasLabCode    : true,
-        typeItem_base32Prefix  : 'E',
-        typeItem_base64Prefix  : 'e1',
-        typeItem_otherPrefixes : null,
+ext.plc_systems = [
+        lims: [
+                name            : 'LIMS',
 
-        typeContainer_hasLabCode    : true,
-        typeContainer_base32Prefix  : 'M',
-        typeContainer_base64Prefix  : 'm1',
-        typeContainer_otherPrefixes : null,
+                item            : [
+                        hasLabCode   : true,
+                        base32Prefix : 'E',
+                        base64Prefix : 'e1',
+                        otherPrefixes: null
+                ],
 
-        typeLocation_hasCustodyOf  : true,
-        typeLocation_otherPrefixes : ['V'],
+                container       : [
+                        hasLabCode   : true,
+                        base32Prefix : 'M',
+                        base64Prefix : 'm1',
+                        otherPrefixes: null,
+                ],
 
-        display_quantity : false
-    ]
-    LAM = [
-        typeItem_hasLabCode    : false,
-        typeItem_base32Prefix  : 'J',
-        typeItem_base64Prefix  : 'J',
-        typeItem_otherPrefixes : null,
+                location        : [
+                        hasCustodyOf : true,
+                        otherPrefixes: ['V'],
+                ],
 
-        typeContainer_hasLabCode    : true,
-        typeContainer_base32Prefix  : 'M',
-        typeContainer_base64Prefix  : 'm1',
-        typeContainer_otherPrefixes : null,
+                display_quantity: false,
+        ],
 
-        typeLocation_hasCustodyOf  : true,
-        typeLocation_otherPrefixes : ['V'],
+        lam : [
+                name            : 'LAM',
 
-        display_quantity : false
-    ]
-    EMS = [
-        typeItem_hasLabCode    : true,
-        typeItem_base32Prefix  : 'T',
-        typeItem_base64Prefix  : 't',
-        typeItem_otherPrefixes : null,
+                item            : [
+                        hasLabCode   : false,
+                        base32Prefix : 'J',
+                        base64Prefix : 'J',
+                        otherPrefixes: null,
+                ],
 
-        typeContainer_hasLabCode    : true,
-        typeContainer_base32Prefix  : 'A',
-        typeContainer_base64Prefix  : 'a',
-        typeContainer_otherPrefixes : null,
+                container       : [
+                        hasLabCode   : true,
+                        base32Prefix : 'M',
+                        base64Prefix : 'm1',
+                        otherPrefixes: null,
+                ],
 
-        typeLocation_hasCustodyOf  : false,
-        typeLocation_otherPrefixes : ['L'],
+                location        : [
+                        hasCustodyOf : true,
+                        otherPrefixes: ['V'],
+                ],
 
-        display_quantity : false
-    ]
-    QM = [
-        typeItem_hasLabCode    : false,
-        typeItem_base32Prefix  : null,
-        typeItem_base64Prefix  : null,
-        typeItem_otherPrefixes : ['Q'],
+                display_quantity: false,
+        ],
 
-        typeContainer_hasLabCode    : false,
-        typeContainer_base32Prefix  : null,
-        typeContainer_base64Prefix  : null,
-        typeContainer_otherPrefixes : null,
+        ems : [
+                name            : 'EMS',
 
-        typeLocation_hasCustodyOf  : false,
-        typeLocation_otherPrefixes : ['L1'],
+                item            : [
+                        hasLabCode   : true,
+                        base32Prefix : 'T',
+                        base64Prefix : 't',
+                        otherPrefixes: null,
+                ],
 
-        display_quantity : true
-    ]
-}
+                container       : [
+                        hasLabCode   : true,
+                        base32Prefix : 'A',
+                        base64Prefix : 'a',
+                        otherPrefixes: null,
+                ],
+
+                location        : [
+                        hasCustodyOf : false,
+                        otherPrefixes: ['L'],
+                ],
+
+                display_quantity: false,
+        ],
+
+        qm  : [
+                name            : 'QM',
+
+                item            : [
+                        hasLabCode   : false,
+                        base32Prefix : null,
+                        base64Prefix : null,
+                        otherPrefixes: ['Q'],
+                ],
+
+                container       : [
+                        hasLabCode   : false,
+                        base32Prefix : null,
+                        base64Prefix : null,
+                        otherPrefixes: null,
+                ],
+
+                location        : [
+                        hasCustodyOf : false,
+                        otherPrefixes: ['L1'],
+                ],
+
+                display_quantity: true,
+        ],
+]

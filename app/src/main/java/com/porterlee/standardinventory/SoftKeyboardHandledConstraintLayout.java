@@ -1,7 +1,7 @@
 package com.porterlee.standardinventory;
 
 import android.content.Context;
-import android.support.constraint.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 
