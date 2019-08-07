@@ -47,7 +47,7 @@ android {
                 signingConfig.setV2SigningEnabled(plc_signing.v2SigningEnabled)
                 setSigningConfig(signingConfig)
             } else {
-                logger.log(LogLevel.WARN, "No signing config found, release apks will not be signed")
+                logger.log(LogLevel.WARN, 'No signing config found, release apks will not be signed')
             }
             //minifyEnabled true
             //proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -123,15 +123,23 @@ android {
                     inFile = variantOutput.outputFile
             }
             if (inFile != null) {
+                def has_signingConfig = variant.signingConfig != null
                 def outDir = Paths.get(buildDir.path, variant.buildType.name, variant.productFlavors[1].name, 'v' + variant.versionName).toString()
                 String outName = plc_systems[variant.productFlavors[0].name].name + 'Inventory'
+                if (variant.buildType.debuggable) outName += '-debug'
+                if (!has_signingConfig) outName += '-unsigned'
                 def task = project.tasks.create("publish${variant.name.capitalize()}") {
                     task ->
                         task.dependsOn variant.assembleProvider
                         task.doLast {
-                            from inFile
-                            into outDir
-                            rename(FilenameUtils.getBaseName(inFile.name), outName)
+                            if (!has_signingConfig) {
+                                logger.log(LogLevel.WARN, "Variant '${variant.name}' does not have a signingConfig, will be unsigned")
+                            }
+                            copy {
+                                from inFile
+                                into outDir
+                                rename(FilenameUtils.getBaseName(inFile.name), outName)
+                            }
                         }
                 }
                 publishAll.dependsOn task
