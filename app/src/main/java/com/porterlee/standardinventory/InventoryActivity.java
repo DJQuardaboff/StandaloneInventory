@@ -13,14 +13,6 @@ import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.core.content.res.ResourcesCompat;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.*;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -37,6 +29,13 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.res.ResourcesCompat;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.*;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -54,10 +53,13 @@ import com.porterlee.standardinventory.InventoryDatabase.LocationTable;
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
 public class InventoryActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), InventoryDatabase.DIRECTORY);
     private static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
     private static final String TAG = InventoryActivity.class.getSimpleName();
-    private static final String OUTPUT_FILE_HEADER = String.format(Locale.US, "%s|%s|%s|v%s|%d", BuildConfig.APPLICATION_ID.substring(BuildConfig.APPLICATION_ID.indexOf('.', BuildConfig.APPLICATION_ID.indexOf('.') + 1) + 1), BuildConfig.FLAVOR, BuildConfig.BUILD_TYPE, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
+    private static final String OUTPUT_FILE_HEADER = String.format(Locale.US, "%s|%s|%s|%s|%s|v%s|%d", BuildConfig.FLAVOR_system, "Inventory", BuildConfig.BUILD_TYPE, BuildConfig.FLAVOR, BuildConfig.BUILD_TYPE, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
+    private static final String INVENTORY_DIR_NAME = "Inventory";
+    private static final String ARCHIVE_DIR_NAME = "Archives";
+    private File outputDir;
+    private File internalDir;
     private SQLiteStatement IS_DUPLICATE_STATEMENT;
     private SQLiteStatement LAST_ITEM_BARCODE_STATEMENT;
     private SQLiteStatement TOTAL_ITEM_COUNT;
@@ -139,7 +141,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
             }
         }
     };
-    
+
     private AbstractScanner getScanner() {
         return AbstractScanner.getInstance();
     }
@@ -149,7 +151,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         super.onCreate(savedInstanceState);
 
         AbstractScanner.setActivity(this);
-        
+
         if (!getScanner().init()) {
             finish();
             Toast.makeText(this, "Scanner failed to initialize", Toast.LENGTH_LONG).show();
@@ -173,23 +175,24 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
     }
 
     private void preInit() {
-        archiveDirectory = new File(getFilesDir() + "/" + InventoryDatabase.ARCHIVE_DIRECTORY);
+        archiveDirectory = new File(getFilesDir(), ARCHIVE_DIR_NAME);
         //noinspection ResultOfMethodCallIgnored
         archiveDirectory.mkdirs();
-        outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "data.txt");
+        outputDir = new File(getExternalFilesDir(null), INVENTORY_DIR_NAME);
         //noinspection ResultOfMethodCallIgnored
-        outputFile.getParentFile().mkdirs();
-        databaseFile = new File(getFilesDir() + "/" + InventoryDatabase.DIRECTORY + "/" + InventoryDatabase.FILE_NAME);
-        //databaseFile = new File(OUTPUT_PATH, InventoryDatabase.FILE_NAME);
+        outputDir.mkdirs();
+        outputFile = new File(outputDir.getAbsolutePath(), "data.txt");
+        internalDir = new File(getFilesDir(), INVENTORY_DIR_NAME);
         //noinspection ResultOfMethodCallIgnored
-        databaseFile.getParentFile().mkdirs();
+        internalDir.mkdirs();
+        databaseFile = new File(internalDir, InventoryDatabase.FILE_NAME);
 
         try {
             initialize();
         } catch (SQLiteCantOpenDatabaseException e) {
             try {
                 //System.out.println(databaseFile.exists());
-                if (databaseFile.renameTo(File.createTempFile("error", ".db", new File(databaseFile.getParent(), InventoryDatabase.ARCHIVE_DIRECTORY)))) {
+                if (databaseFile.renameTo(File.createTempFile("error", ".db", archiveDirectory))) {
                     Toast.makeText(this, "There was an error loading the inventory file. It has been archived", Toast.LENGTH_SHORT).show();
                 } else {
                     databaseLoadError();
@@ -904,8 +907,8 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
             try {
                 //noinspection ResultOfMethodCallIgnored
-                OUTPUT_PATH.mkdirs();
-                final File TEMP_OUTPUT_FILE = File.createTempFile("tmp", ".txt", OUTPUT_PATH);
+                outputDir.mkdirs();
+                final File TEMP_OUTPUT_FILE = File.createTempFile("tmp", ".txt", outputDir);
 
                 int totalItemCount = itemCursor.getCount() + 1;
                 int currentLocationId = -1;

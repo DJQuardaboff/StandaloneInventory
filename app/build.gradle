@@ -4,7 +4,7 @@ import org.apache.commons.io.FilenameUtils
 import java.nio.file.Paths
 
 apply plugin: 'com.android.application'
-apply from: 'systems.gradle'
+apply from: 'plc_systems.gradle'
 apply from: 'version.gradle'
 
 def signingFilePath = 'signing.gradle'
@@ -27,10 +27,10 @@ private static String generateVersionName(def version) {
 
 android {
     compileSdkVersion 29
-    buildToolsVersion "29.0.1"
+    buildToolsVersion '29.0.1'
     defaultConfig {
-        minSdkVersion 17
         targetSdkVersion 29
+        minSdkVersion 23
         versionCode generateVersionCode(plc_version)
         versionName generateVersionName(plc_version)
         //testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -59,13 +59,13 @@ android {
     }
     flavorDimensions 'system', 'scannerSdk'
     productFlavors {
-        janam_XM5 {
+        janam_xm5 {
             dimension 'scannerSdk'
         }
-        janam_XT2_XT2__XM75_XT100_XG200 {
+        janam {
             dimension 'scannerSdk'
         }
-        zebra_emdk_symbol_26 {
+        zebra {
             dimension 'scannerSdk'
         }
     }
@@ -149,11 +149,11 @@ android {
 }
 
 dependencies {
-    janam_XM5Implementation project(':plc_scanners-janam_XM5Release')
-    janam_XT2_XT2__XM75_XT100_XG200Implementation project(':plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release')
-    zebra_emdk_symbol_26Implementation project(':plc_scanners-zebra_emdk_symbol_26Release')
+    janam_xm5Implementation project(':plc_scanners-janam_XM5Release')
+    janamImplementation project(':plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release')
+    zebraImplementation project(':plc_scanners-zebra_emdk_symbol_26Release')
 
-    implementation 'androidx.appcompat:appcompat:1.0.2'
+    implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.recyclerview:recyclerview:1.0.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation 'me.zhanghai.android.materialprogressbar:library:1.6.1'

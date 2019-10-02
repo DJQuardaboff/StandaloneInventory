@@ -4,8 +4,6 @@ import android.database.sqlite.SQLiteDatabase;
 
 public class InventoryDatabase {
     public static final String FILE_NAME = "inventory.db";
-    public static final String DIRECTORY = "Inventory";
-    public static final String ARCHIVE_DIRECTORY = "Archives";
     public static final String ID = "id";
     public static final String ITEM_ID = "item_id";
     public static final String PICTURE = "picture";
