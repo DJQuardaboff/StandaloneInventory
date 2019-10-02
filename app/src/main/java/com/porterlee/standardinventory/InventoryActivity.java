@@ -13,6 +13,7 @@ import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -178,7 +179,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         archiveDirectory = new File(getFilesDir(), ARCHIVE_DIR_NAME);
         //noinspection ResultOfMethodCallIgnored
         archiveDirectory.mkdirs();
-        outputDir = new File(getExternalFilesDir(null), INVENTORY_DIR_NAME);
+        outputDir = new File(Environment.getExternalStorageDirectory(), INVENTORY_DIR_NAME);
         //noinspection ResultOfMethodCallIgnored
         outputDir.mkdirs();
         outputFile = new File(outputDir.getAbsolutePath(), "data.txt");
